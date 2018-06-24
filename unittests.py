@@ -55,6 +55,12 @@ class TestDividend(unittest.TestCase):
     def test_representation(self):
         self.assertEqual(repr(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
 
+class TestGetOpeningPositions(unittest.TestCase):
+
+    def test_return_type(self):
+        pos = get_opening_positions()
+        self.assertEqual(type(pos),list)
+
 
 if __name__ == '__main__':
     unittest.main()
