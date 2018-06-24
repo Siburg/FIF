@@ -3,6 +3,7 @@ class Share:
         self.code = code
         self.start_holding = start_holding
         self.holding = start_holding
+        #note that prices may need to be defined as decimals, but leave out for now
         self.start_price = start_price
         self.end_price = end_price
         self.currency = currency
@@ -40,15 +41,7 @@ class Dividend:
 
 
 def main():
-    emb = Share('EMB', 11, 100., 110.)
-    veu = Share('VEU', 12, 120., 130.)
-    print(emb)
-    print(veu)
-
-    veu_trade = Trade('VEU', "jan", 10, 115.0, 1.23)
-    print(veu_trade)
-    emb_divi = Dividend("EMB", 'feb', 0.023, 0.46)
-    print(emb_divi)
+    pass
 
 
 if __name__ == '__main__':
