@@ -29,9 +29,9 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.start_holding, 1.2345)
 
     def test_representation(self):
-        self.assertEqual(str(self.someshare), 'some shareholding is 0')
-        self.assertEqual(str(self.emb), 'EMB shareholding is 11')
-        self.assertEqual(str(self.robeco), 'Robeco shareholding is 1.2345')
+        self.assertEqual(repr(self.someshare), 'some shareholding is 0')
+        self.assertEqual(repr(self.emb), 'EMB shareholding is 11')
+        self.assertEqual(repr(self.robeco), 'Robeco shareholding is 1.2345')
 
 
 class TestTrade(unittest.TestCase):
@@ -42,7 +42,7 @@ class TestTrade(unittest.TestCase):
         self.assertIsInstance(self.veu_trade, Trade)
 
     def test_representation(self):
-        self.assertEqual(str(self.veu_trade), 'trade for 10 shares of VEU on jan at 115.0 with costs of 1.23')
+        self.assertEqual(repr(self.veu_trade), 'trade for 10 shares of VEU on jan at 115.0 with costs of 1.23')
 
 
 class TestDividend(unittest.TestCase):
@@ -53,7 +53,7 @@ class TestDividend(unittest.TestCase):
         self.assertIsInstance(self.emb_div, Dividend)
 
     def test_representation(self):
-        self.assertEqual(str(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
+        self.assertEqual(repr(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
 
 
 if __name__ == '__main__':
