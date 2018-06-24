@@ -38,10 +38,13 @@ class Dividend:
         return "dividend of %s on %s for %s at %s per share"\
                % (self.paid, self.date, self.code, self.per_share)
 
+def get_opening_positions():
+    opening_positions = []
+    return opening_positions
 
 
 def main():
-    pass
+    opening_positions = get_opening_positions()
 
 
 if __name__ == '__main__':
