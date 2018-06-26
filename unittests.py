@@ -3,12 +3,13 @@
 from FIF import *
 import unittest
 #from unittest import mock
+from decimal import Decimal, ROUND_HALF_UP
 
 class TestShare(unittest.TestCase):
     def setUp(self):
         self.someshare = Share("some")
-        self.emb = Share('EMB', 11, 100., 110.)
-        self.robeco = Share('Robeco', 1.2345, 111.11, 111.22, 'EUR')
+        self.emb = Share('EMB', '11', '100.', '110.')
+        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
 
     def test_existence(self):
         self.assertIsInstance(self.someshare, Share)
@@ -25,8 +26,8 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.currency, 'EUR')
 
     def test_start_holding(self):
-        self.assertEqual(self.someshare.start_holding, 0)
-        self.assertEqual(self.robeco.start_holding, 1.2345)
+        self.assertEqual(self.someshare.start_holding, '0')
+        self.assertEqual(self.robeco.start_holding, '1.2345')
 
     def test_representation(self):
         self.assertEqual(repr(self.someshare), 'some shareholding is 0')
@@ -36,7 +37,7 @@ class TestShare(unittest.TestCase):
 
 class TestTrade(unittest.TestCase):
     def setUp(self):
-        self.veu_trade = Trade('VEU', "jan", 10, 115.0, 1.23)
+        self.veu_trade = Trade('VEU', "jan", '10', '115.0', '1.23')
 
     def test_existence(self):
         self.assertIsInstance(self.veu_trade, Trade)
@@ -47,7 +48,7 @@ class TestTrade(unittest.TestCase):
 
 class TestDividend(unittest.TestCase):
     def setUp(self):
-        self.emb_div = Dividend("EMB", 'feb', 0.023, 0.46)
+        self.emb_div = Dividend("EMB", 'feb', '0.023', '0.46')
 
     def test_existence(self):
         self.assertIsInstance(self.emb_div, Dividend)
@@ -55,11 +56,32 @@ class TestDividend(unittest.TestCase):
     def test_representation(self):
         self.assertEqual(repr(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
 
+
 class TestGetOpeningPositions(unittest.TestCase):
 
+    def setUp(self):
+        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        self.emb = Share('EMB', '11', '100.', '110.')
+        self.opening_positions = [self.robeco, self.emb]
+
     def test_return_type(self):
-        pos = get_opening_positions()
-        self.assertEqual(type(pos),list)
+        self.assertEqual(type(self.opening_positions),list)
+
+    def test_list_length(self):
+        self.assertEqual(len(self.opening_positions), 2)
+
+
+class TestCalcFDRBasic(unittest.TestCase):
+
+    def setUp(self):
+        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        self.emb = Share('EMB', '11', '100.', '110.')
+        self.opening_positions = [self.robeco, self.emb]
+
+    def test_return_exists(self):
+        FDR_basic = calc_FDR_basic(self.opening_positions, Decimal('0.05'))
+        # review this for improvement
+        self.assertTrue(FDR_basic >= 0)
 
 
 if __name__ == '__main__':
