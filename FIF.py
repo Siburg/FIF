@@ -1,4 +1,4 @@
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
 class Share:
     def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00', currency='USD'):
@@ -49,9 +49,12 @@ def get_opening_positions():
 
 
 def calc_FDR_basic(opening_positions, FDR_rate):
+    # consider testing if FDR_rate is a string; which is at least strongly recommended
+    #ignoring currencies for now
     FDR_basic = Decimal('0')
-    return FDR_basic
-
+    for position in opening_positions:
+        FDR_basic += Decimal(position.start_holding) * Decimal(position.start_price)
+    return (FDR_basic * Decimal(FDR_rate)).quantize(Decimal('.01'), rounding = ROUND_DOWN)
 
 
 def main():

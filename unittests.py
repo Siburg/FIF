@@ -3,7 +3,7 @@
 from FIF import *
 import unittest
 #from unittest import mock
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
 class TestShare(unittest.TestCase):
     def setUp(self):
@@ -73,15 +73,34 @@ class TestGetOpeningPositions(unittest.TestCase):
 
 class TestCalcFDRBasic(unittest.TestCase):
 
-    def setUp(self):
-        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
-        self.emb = Share('EMB', '11', '100.', '110.')
-        self.opening_positions = [self.robeco, self.emb]
-
     def test_return_exists(self):
-        FDR_basic = calc_FDR_basic(self.opening_positions, Decimal('0.05'))
+        self.opening_positions = []
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         # review this for improvement
         self.assertTrue(FDR_basic >= 0)
+
+    def test_single_share(self):
+        self.opening_positions = [Share('share1', '100', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('5.00'))
+
+        self.opening_positions = [Share('share2', '1.2', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.06'))
+
+        self.opening_positions = [Share('share3', '1.399', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.06'))
+
+        self.opening_positions = [Share('share4', '0.2', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.01'))
+
+        self.opening_positions = [Share('share2', '0.2', '0.99')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.00'))
+
+
 
 
 if __name__ == '__main__':
