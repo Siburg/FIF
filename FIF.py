@@ -54,7 +54,7 @@ def calc_FDR_basic(opening_positions, FDR_rate):
     FDR_basic = Decimal('0')
     for position in opening_positions:
         FDR_basic += Decimal(position.start_holding) * Decimal(position.start_price)
-    return (FDR_basic * Decimal(FDR_rate)).quantize(Decimal('.01'), rounding = ROUND_DOWN)
+    return (FDR_basic * Decimal(FDR_rate)).quantize(Decimal('0.01'), rounding = ROUND_DOWN)
 
 
 def main():

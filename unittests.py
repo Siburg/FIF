@@ -96,9 +96,26 @@ class TestCalcFDRBasic(unittest.TestCase):
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.01'))
 
-        self.opening_positions = [Share('share2', '0.2', '0.99')]
+        self.opening_positions = [Share('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.00'))
+
+    def test_more_shares(self):
+        self.opening_positions = [Share('share1', '100', '1.00'), Share('share1', '100', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('10.00'))
+
+        self.opening_positions = [Share('share1', '100', '1.00'), Share('share2', '1.2', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('5.06'))
+
+        self.opening_positions = [Share('share3', '1.399', '1.00'), Share('share3', '1.399', '1.00')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.13'))
+
+        self.opening_positions = [Share('share5', '0.2', '0.99'), Share('share5', '0.2', '0.99')]
+        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
+        self.assertEqual(FDR_basic, Decimal('0.01'))
 
 
 
