@@ -7,14 +7,14 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
 class TestShare(unittest.TestCase):
     def setUp(self):
-        self.someshare = Share("some")
-        self.emb = Share('EMB', '11', '100.', '110.')
-        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        self.someshare = Shareholding("some")
+        self.emb = Shareholding('EMB', '11', '100.', '110.')
+        self.robeco = Shareholding('Robeco', '1.2345', '111.11', '111.22', 'EUR')
 
     def test_existence(self):
-        self.assertIsInstance(self.someshare, Share)
-        self.assertIsInstance(self.emb, Share)
-        self.assertIsInstance(self.robeco, Share)
+        self.assertIsInstance(self.someshare, Shareholding)
+        self.assertIsInstance(self.emb, Shareholding)
+        self.assertIsInstance(self.robeco, Shareholding)
 
     def test_share_code(self):
         """test share name"""
@@ -30,9 +30,9 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.start_holding, '1.2345')
 
     def test_representation(self):
-        self.assertEqual(repr(self.someshare), 'some shareholding is 0')
-        self.assertEqual(repr(self.emb), 'EMB shareholding is 11')
-        self.assertEqual(repr(self.robeco), 'Robeco shareholding is 1.2345')
+        self.assertEqual(repr(self.someshare), 'some shareholding is 0 shares')
+        self.assertEqual(repr(self.emb), 'EMB shareholding is 11 shares')
+        self.assertEqual(repr(self.robeco), 'Robeco shareholding is 1.2345 shares')
 
 
 class TestTrade(unittest.TestCase):
@@ -60,8 +60,8 @@ class TestDividend(unittest.TestCase):
 class TestGetOpeningPositions(unittest.TestCase):
 
     def setUp(self):
-        self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
-        self.emb = Share('EMB', '11', '100.', '110.')
+        self.robeco = Shareholding('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        self.emb = Shareholding('EMB', '11', '100.', '110.')
         self.opening_positions = [self.robeco, self.emb]
 
     def test_return_type(self):
@@ -80,40 +80,40 @@ class TestCalcFDRBasic(unittest.TestCase):
         self.assertTrue(FDR_basic >= 0)
 
     def test_single_share(self):
-        self.opening_positions = [Share('share1', '100', '1.00')]
+        self.opening_positions = [Shareholding('share1', '100', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('5.00'))
 
-        self.opening_positions = [Share('share2', '1.2', '1.00')]
+        self.opening_positions = [Shareholding('share2', '1.2', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.06'))
 
-        self.opening_positions = [Share('share3', '1.399', '1.00')]
+        self.opening_positions = [Shareholding('share3', '1.399', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.06'))
 
-        self.opening_positions = [Share('share4', '0.2', '1.00')]
+        self.opening_positions = [Shareholding('share4', '0.2', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.01'))
 
-        self.opening_positions = [Share('share5', '0.2', '0.99')]
+        self.opening_positions = [Shareholding('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.00'))
 
     def test_more_shares(self):
-        self.opening_positions = [Share('share1', '100', '1.00'), Share('share1', '100', '1.00')]
+        self.opening_positions = [Shareholding('share1', '100', '1.00'), Shareholding('share1', '100', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('10.00'))
 
-        self.opening_positions = [Share('share1', '100', '1.00'), Share('share2', '1.2', '1.00')]
+        self.opening_positions = [Shareholding('share1', '100', '1.00'), Shareholding('share2', '1.2', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('5.06'))
 
-        self.opening_positions = [Share('share3', '1.399', '1.00'), Share('share3', '1.399', '1.00')]
+        self.opening_positions = [Shareholding('share3', '1.399', '1.00'), Shareholding('share3', '1.399', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.13'))
 
-        self.opening_positions = [Share('share5', '0.2', '0.99'), Share('share5', '0.2', '0.99')]
+        self.opening_positions = [Shareholding('share5', '0.2', '0.99'), Shareholding('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.01'))
 

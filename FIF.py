@@ -1,21 +1,74 @@
+"""
+A program to calculate Foreign Investment Fund (FIF) income in
+accordance with tax rules in New Zealand. It calculates FIF income
+using the Fair Dividend Rate (FDR) method and the Comparative Value
+(CV) method. The minimum from those two methods is used as final
+result for FIF income.
+
+Note that some tax payers may use other methods as well or instead.
+Such other methods are not covered by this program.
+
+by Jelle Sjoerdsma
+July 2018
+
+No license (yet), but program is intended for public domain and may
+be considered open source
+"""
+
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
-class Share:
-    def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00', currency='USD'):
-        # numerical values are set as string so they can be used in Decimal calculations
+
+class Shareholding:
+    """
+    Holds information on shareholdings.
+    code: a code or abbreviation to identify the share issuer.
+    start_holding : number of shares held at start of the tax period.
+    holding: current number of shares held.
+    start_price: price per share at start of the tax period.
+    end_price: price per share at end of the tax period.
+    currency: currency of the share prices.
+
+    It is strongly recommended to pass numerical values as strings,
+    so they can be accurately used in calculations as Decimals.
+    """
+    def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00',
+                 currency='USD'):
+        """
+
+        :param code:
+        :param start_holding:
+        :param start_price:
+        :param end_price:
+        :param currency:
+        """
         self.code = code
         self.start_holding = start_holding
+        # holding is set to start_holding at initialisation
         self.holding = start_holding
-        #note that prices may need to be defined as decimals, but leave out for now
+        # note that input prices could be converted to Decimal here,
+        # but leave that wrinkle out for now.
         self.start_price = start_price
         self.end_price = end_price
         self.currency = currency
+        return
+
+    def increase_holding(self, increase):
+        """
+        should this work with Decimal or not ??????
+        :param increase:
+        :return:
+        """
+        self.holding += increase
+        return self.holding
 
     def __repr__(self):
-        return "%s shareholding is %s" % (self.code, self.holding)
+        return "%s shareholding is %s shares" % (self.code, self.holding)
 
 
 class Trade:
+    """
+    add comments
+    """
     def __init__(self, code, date, share_change, price, costs):
         self.code = code
         # add functions to parse date into a datetime object
@@ -49,7 +102,8 @@ def get_opening_positions():
 
 
 def calc_FDR_basic(opening_positions, FDR_rate):
-    # consider testing if FDR_rate is a string; which is at least strongly recommended
+    # consider testing if FDR_rate is a string; which is at
+    # least strongly recommended
     #ignoring currencies for now
     FDR_basic = Decimal('0')
     for position in opening_positions:
