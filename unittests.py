@@ -23,16 +23,47 @@ class TestShare(unittest.TestCase):
 
     def test_currency(self):
         self.assertAlmostEqual(self.someshare.currency, 'USD')
+        self.assertAlmostEqual(self.emb.currency, 'USD')
         self.assertEqual(self.robeco.currency, 'EUR')
 
     def test_start_holding(self):
-        self.assertEqual(self.someshare.start_holding, '0')
-        self.assertEqual(self.robeco.start_holding, '1.2345')
+        self.assertEqual(self.someshare.start_holding, Decimal('0'))
+        self.assertEqual(self.emb.start_holding, Decimal('11'))
+        self.assertEqual(self.robeco.start_holding, Decimal('1.2345'))
+
+    def test_holding(self):
+        self.assertEqual(self.someshare.holding, Decimal('0'))
+        self.assertEqual(self.emb.holding, Decimal('11'))
+        self.assertEqual(self.robeco.holding, Decimal('1.2345'))
+
+    def test_start_price(self):
+        self.assertEqual(self.someshare.start_price, Decimal('0'))
+        self.assertEqual(self.emb.start_price, Decimal('100'))
+        self.assertEqual(self.robeco.start_price, Decimal('111.11'))
+
+    def test_end_price(self):
+        self.assertEqual(self.someshare.end_price, Decimal('0'))
+        self.assertEqual(self.emb.end_price, Decimal('110'))
+        self.assertEqual(self.robeco.end_price, Decimal('111.22'))
 
     def test_representation(self):
         self.assertEqual(repr(self.someshare), 'some shareholding is 0 shares')
         self.assertEqual(repr(self.emb), 'EMB shareholding is 11 shares')
         self.assertEqual(repr(self.robeco), 'Robeco shareholding is 1.2345 shares')
+
+    def test_increase_holding(self):
+        self.assertEqual(self.someshare.increase_holding('0'), Decimal('0'))
+        self.assertEqual(self.emb.increase_holding(Decimal('0')), Decimal('11'))
+        self.assertEqual(self.robeco.increase_holding(0), Decimal('1.2345'))
+        self.assertEqual(self.someshare.increase_holding('1'), Decimal('1'))
+        self.assertEqual(self.someshare.increase_holding(1), Decimal('2'))
+        self.assertEqual(self.someshare.increase_holding('1.23'), Decimal('3.23'))
+        self.assertEqual(self.robeco.increase_holding('1'), Decimal('2.2345'))
+        self.assertEqual(self.robeco.increase_holding('.00006'), Decimal('2.23456'))
+        self.assertEqual(self.robeco.increase_holding('.76544'), Decimal('3'))
+        self.assertEqual(self.robeco.increase_holding('.99'), Decimal('3.99000'))
+        self.assertEqual(self.robeco.holding, Decimal('3.99'))
+        self.assertEqual(self.robeco.holding, Decimal('3.99000'))
 
 
 class TestTrade(unittest.TestCase):

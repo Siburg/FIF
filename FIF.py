@@ -28,37 +28,33 @@ class Shareholding:
     end_price: price per share at end of the tax period.
     currency: currency of the share prices.
 
-    It is strongly recommended to pass numerical values as strings,
-    so they can be accurately used in calculations as Decimals.
+    The numerical values for shareholdings and prices are stored as
+    Decimals. It is strongly recommended to pass numerical values for
+    them as strings (or already in the form of Decimals), so they can
+    be accurately converted to Decimals.
     """
     def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00',
                  currency='USD'):
         """
-
-        :param code:
-        :param start_holding:
-        :param start_price:
-        :param end_price:
-        :param currency:
+        Constructor function with defaults set to zero for numerical
+        values. Default for currency is USD. Change that if you wish
+        another default currency, e.g. AUD.
         """
         self.code = code
-        self.start_holding = start_holding
-        # holding is set to start_holding at initialisation
-        self.holding = start_holding
-        # note that input prices could be converted to Decimal here,
-        # but leave that wrinkle out for now.
-        self.start_price = start_price
-        self.end_price = end_price
+        self.start_holding = Decimal(start_holding)
+        # holding is set to start_holding (after conversion to Decimal)
+        # at initialisation
+        self.holding = Decimal(start_holding)
+        self.start_price = Decimal(start_price)
+        self.end_price = Decimal(end_price)
         self.currency = currency
         return
 
     def increase_holding(self, increase):
         """
-        should this work with Decimal or not ??????
-        :param increase:
-        :return:
+        add comments
         """
-        self.holding += increase
+        self.holding += Decimal(increase)
         return self.holding
 
     def __repr__(self):
