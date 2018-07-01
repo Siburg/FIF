@@ -106,6 +106,16 @@ def get_opening_positions():
 
 
 def list_opening_positions(opening_positions):
+    """
+    Prints opening positions in a tabular format, followed by a total
+    value in NZD.
+
+    opening_positions: list of shareholdings, as obtained from
+    get_opening_positions (i.e. without any updates from trades)
+
+    Code is ignoring currencies for now. An exchange rate of 1 is
+    temporarily used for all currencies.
+    """
     header_format_string = '{0:15} {1:>12} {2:>10} {3:>15} {4:8} {5:>15}'
     share_format_string = '{0:15} {1:12,} {2:10,.2f} {3:15,.2f} {4:8} {5:15,.2f}'
     total = Decimal('0.00')
@@ -114,8 +124,9 @@ def list_opening_positions(opening_positions):
         'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
 
     for share in opening_positions:
-        value = (share.start_holding * share.start_price).quantize(Decimal('0.01'))
-        NZD_value = value
+        value = (share.start_holding * share.start_price).quantize(
+            Decimal('0.01'), ROUND_HALF_UP)
+        NZD_value = value   # assuming temporary FX rate of 1
         print(share_format_string.format(
             share.code, share.start_holding, share.start_price, value, share.currency, NZD_value))
         total += NZD_value
@@ -126,17 +137,45 @@ def list_opening_positions(opening_positions):
 
 
 def calc_FDR_basic(opening_positions, FDR_rate):
-    #ignoring currencies for now
+    """
+    ADD BETTER COMMENTS
+    :param opening_positions:
+    :param FDR_rate:
+    :return:
+    """
+    # ignoring currencies for now
+    # this temporarily assumes start_price is in NZD
     FDR_basic = Decimal('0.00')
-    for position in opening_positions:
-        FDR_basic += Decimal(position.start_holding) * Decimal(position.start_price)
-    return (FDR_basic * Decimal(FDR_rate)).quantize(Decimal('0.01'), rounding = ROUND_DOWN)
+    currency_FX_rate = Decimal('1')
+    for share in opening_positions:
+        value = (share.start_holding * share.start_price).quantize(
+            Decimal('0.01'), ROUND_HALF_UP)
+        # Note that we are first rounding off the value in foreign
+        # currency, before additional rounding below. This can only
+        # be an issue for shares with fractional holdings.
+
+        FDR_basic += (value * currency_FX_rate * Decimal(FDR_rate)).quantize(
+            Decimal('0.01'), rounding = ROUND_HALF_UP)
+        # It appears that FIF needs to be calculated for each security.
+        # That's why rounding is done per share, after multiplying each
+        # share with the FDR_rate.
+    return FDR_basic
+
+
+def get_trades():
+    """
+    ADD COMMENTS
+    :return:
+    """
+    trades = []
+    return trades
 
 
 def main():
     opening_positions = get_opening_positions()
     list_opening_positions(opening_positions)
     calc_FDR_basic(opening_positions, FDR_RATE)
+    trades = get_trades()
 
 
 if __name__ == '__main__':

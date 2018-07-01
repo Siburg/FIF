@@ -141,7 +141,7 @@ class TestCalcFDRBasic(unittest.TestCase):
 
         self.opening_positions = [Shareholding('share3', '1.399', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
-        self.assertEqual(FDR_basic, Decimal('0.06'))
+        self.assertEqual(FDR_basic, Decimal('0.07'))
 
         self.opening_positions = [Shareholding('share4', '0.2', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
@@ -149,7 +149,7 @@ class TestCalcFDRBasic(unittest.TestCase):
 
         self.opening_positions = [Shareholding('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
-        self.assertEqual(FDR_basic, Decimal('0.00'))
+        self.assertEqual(FDR_basic, Decimal('0.01'))
 
     def test_more_shares(self):
         self.opening_positions = [Shareholding('share1', '100', '1.00'), Shareholding('share1', '100', '1.00')]
@@ -162,13 +162,17 @@ class TestCalcFDRBasic(unittest.TestCase):
 
         self.opening_positions = [Shareholding('share3', '1.399', '1.00'), Shareholding('share3', '1.399', '1.00')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
-        self.assertEqual(FDR_basic, Decimal('0.13'))
+        self.assertEqual(FDR_basic, Decimal('0.14'))
 
         self.opening_positions = [Shareholding('share5', '0.2', '0.99'), Shareholding('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
-        self.assertEqual(FDR_basic, Decimal('0.01'))
+        self.assertEqual(FDR_basic, Decimal('0.02'))
 
 
+class TestGetTrades(unittest.TestCase):
+
+    def test_return_type(self):
+        self.assertEqual(type(get_trades()),list)
 
 
 if __name__ == '__main__':
