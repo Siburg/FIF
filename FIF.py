@@ -66,7 +66,8 @@ class Shareholding:
         return self.holding
 
     def __repr__(self):
-        return "%s shareholding is %s shares" % (self.code, self.holding)
+        return ('{} shareholding is {} shares').format(
+            self.code, self.holding)
 
 
 class Trade:
@@ -83,8 +84,8 @@ class Trade:
         self.charge = Decimal(share_change) * Decimal(price) + Decimal(costs)
 
     def __repr__(self):
-        return "trade for %s shares of %s on %s at %s with costs of %s"\
-               % (self.share_change, self.code, self.date, self.price, self.costs)
+        return ('trade for {} shares of {} on {} at {} with costs of {}').format(
+               self.share_change, self.code, self.date, self.price, self.costs)
 
 
 class Dividend:
@@ -96,8 +97,8 @@ class Dividend:
         self.paid = paid
 
     def __repr__(self):
-        return "dividend of %s on %s for %s at %s per share"\
-               % (self.paid, self.date, self.code, self.per_share)
+        return ('dividend of {} on {} for {} at {} per share').format(
+               self.paid, self.date, self.code, self.per_share)
 
 
 def get_opening_positions():
@@ -116,8 +117,10 @@ def list_opening_positions(opening_positions):
     Code is ignoring currencies for now. An exchange rate of 1 is
     temporarily used for all currencies.
     """
-    header_format_string = '{0:15} {1:>12} {2:>10} {3:>15} {4:8} {5:>15}'
-    share_format_string = '{0:15} {1:12,} {2:10,.2f} {3:15,.2f} {4:8} {5:15,.2f}'
+    header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
+    share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
+    # Note there are spaces between the {} items, so don't forget to
+    # count those spaces for the total line width.
     total = Decimal('0.00')
     print('Opening positions')
     print(header_format_string.format(
@@ -133,7 +136,7 @@ def list_opening_positions(opening_positions):
 
     print(('{:>80}').format('---------------'))
     print(('{:40}{:>40,.2f}').format('total NZD value', total))
-    return
+    return total
 
 
 def calc_FDR_basic(opening_positions, FDR_rate):

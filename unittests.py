@@ -115,7 +115,7 @@ class TestListOpeningPositions(unittest.TestCase):
         self.opening_positions = [self.someshare, self.emb, self.robeco]
 
     def test_return(self):
-        self.assertEqual(list_opening_positions(self.opening_positions), None)
+        self.assertEqual(list_opening_positions(self.opening_positions), Decimal('1100137.17'))
 
     # test the rest visually for now from output to console generated
     # by test above
