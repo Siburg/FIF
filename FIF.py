@@ -17,6 +17,7 @@ be considered open source
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
+FDR_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
 class Shareholding:
     """
@@ -52,7 +53,14 @@ class Shareholding:
 
     def increase_holding(self, increase):
         """
-        add comments
+        Adds Decimal value of increase to holding. This means a
+        positive value will increase holding, and a negative value
+        will decrease it.
+        increase: number of shares to increase/(decrease) holding with
+        return: holding after the increase, in Decimal
+
+        increase should be passed as a string (or as Decimal already)
+        but will also accept an integer value.
         """
         self.holding += Decimal(increase)
         return self.holding
@@ -97,19 +105,38 @@ def get_opening_positions():
     return opening_positions
 
 
+def list_opening_positions(opening_positions):
+    header_format_string = '{0:15} {1:>12} {2:>10} {3:>15} {4:8} {5:>15}'
+    share_format_string = '{0:15} {1:12,} {2:10,.2f} {3:15,.2f} {4:8} {5:15,.2f}'
+    total = Decimal('0.00')
+    print('Opening positions')
+    print(header_format_string.format(
+        'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
+
+    for share in opening_positions:
+        value = (share.start_holding * share.start_price).quantize(Decimal('0.01'))
+        NZD_value = value
+        print(share_format_string.format(
+            share.code, share.start_holding, share.start_price, value, share.currency, NZD_value))
+        total += NZD_value
+
+    print(('{:>80}').format('---------------'))
+    print(('{:40}{:>40,.2f}').format('total NZD value', total))
+    return
+
+
 def calc_FDR_basic(opening_positions, FDR_rate):
-    # consider testing if FDR_rate is a string; which is at
-    # least strongly recommended
     #ignoring currencies for now
-    FDR_basic = Decimal('0')
+    FDR_basic = Decimal('0.00')
     for position in opening_positions:
         FDR_basic += Decimal(position.start_holding) * Decimal(position.start_price)
     return (FDR_basic * Decimal(FDR_rate)).quantize(Decimal('0.01'), rounding = ROUND_DOWN)
 
 
 def main():
-    FDR_RATE = Decimal('0.05')
     opening_positions = get_opening_positions()
+    list_opening_positions(opening_positions)
+    calc_FDR_basic(opening_positions, FDR_RATE)
 
 
 if __name__ == '__main__':

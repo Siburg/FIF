@@ -60,10 +60,11 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.someshare.increase_holding('1.23'), Decimal('3.23'))
         self.assertEqual(self.robeco.increase_holding('1'), Decimal('2.2345'))
         self.assertEqual(self.robeco.increase_holding('.00006'), Decimal('2.23456'))
-        self.assertEqual(self.robeco.increase_holding('.76544'), Decimal('3'))
-        self.assertEqual(self.robeco.increase_holding('.99'), Decimal('3.99000'))
-        self.assertEqual(self.robeco.holding, Decimal('3.99'))
-        self.assertEqual(self.robeco.holding, Decimal('3.99000'))
+        self.assertEqual(self.robeco.increase_holding('-.23456'), Decimal('2'))
+        self.assertEqual(self.robeco.increase_holding(-1), Decimal('1'))
+        self.assertEqual(self.robeco.increase_holding('.99'), Decimal('1.99000'))
+        self.assertEqual(self.robeco.holding, Decimal('1.99'))
+        self.assertEqual(self.robeco.holding, Decimal('1.99000'))
 
 
 class TestTrade(unittest.TestCase):
@@ -91,15 +92,34 @@ class TestDividend(unittest.TestCase):
 class TestGetOpeningPositions(unittest.TestCase):
 
     def setUp(self):
-        self.robeco = Shareholding('Robeco', '1.2345', '111.11', '111.22', 'EUR')
-        self.emb = Shareholding('EMB', '11', '100.', '110.')
-        self.opening_positions = [self.robeco, self.emb]
+        # self.robeco = Shareholding('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        # self.emb = Shareholding('EMB', '11', '100.', '110.')
+        # self.opening_positions = [self.robeco, self.emb]
+        pass
 
     def test_return_type(self):
-        self.assertEqual(type(self.opening_positions),list)
+        self.assertEqual(type(get_opening_positions()),list)
 
+"""
     def test_list_length(self):
-        self.assertEqual(len(self.opening_positions), 2)
+        openings = get_opening_positions()
+        self.assertEqual(len(openings), 2)
+"""
+
+class TestListOpeningPositions(unittest.TestCase):
+
+    def setUp(self):
+        self.someshare = Shareholding("some")
+        self.emb = Shareholding('EMB', '1100', '1000.', '110.')
+        self.robeco = Shareholding('Robeco', '1.2345', '111.11', '111.22', 'EUR')
+        self.opening_positions = [self.someshare, self.emb, self.robeco]
+
+    def test_return(self):
+        self.assertEqual(list_opening_positions(self.opening_positions), None)
+
+    # test the rest visually for now from output to console generated
+    # by test above
+
 
 
 class TestCalcFDRBasic(unittest.TestCase):
