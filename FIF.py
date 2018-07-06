@@ -24,7 +24,8 @@ class Shareholding:
     Holds information on shareholdings.
     code: a code or abbreviation to identify the share issuer.
     start_holding : number of shares held at start of the tax period.
-    holding: current number of shares held.
+    holding: current number of shares held, as calculated from other
+        inputs.
     start_price: price per share at start of the tax period.
     end_price: price per share at end of the tax period.
     currency: currency of the share prices.
@@ -33,6 +34,10 @@ class Shareholding:
     Decimals. It is strongly recommended to pass numerical values for
     them as strings (or already in the form of Decimals), so they can
     be accurately converted to Decimals.
+
+    The full share name is not currently a variable in this class.
+    Consider it for addition later, or consider splitting the class
+    later into a Share class and a Holding class.
     """
     def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00',
                  currency='USD'):
@@ -151,17 +156,21 @@ def calc_FDR_basic(opening_positions, FDR_rate):
     FDR_basic = Decimal('0.00')
     currency_FX_rate = Decimal('1')
     for share in opening_positions:
-        value = (share.start_holding * share.start_price).quantize(
+        foreign_value = (share.start_holding * share.start_price).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Note that we are first rounding off the value in foreign
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        FDR_basic += (value * currency_FX_rate * Decimal(FDR_rate)).quantize(
+        NZD_value = (foreign_value * currency_FX_rate).quantize(
+            Decimal('0.01'), ROUND_HALF_UP)
+        # Make this a separate rounding as well.
+
+        FDR_basic += (NZD_value * Decimal(FDR_rate)).quantize(
             Decimal('0.01'), rounding = ROUND_HALF_UP)
         # It appears that FIF needs to be calculated for each security.
-        # That's why rounding is done per share, after multiplying each
-        # share with the FDR_rate.
+        # That's why final rounding is done per share, after
+        # multiplying eachshare with the FDR_rate.
     return FDR_basic
 
 

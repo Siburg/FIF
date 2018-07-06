@@ -100,11 +100,10 @@ class TestGetOpeningPositions(unittest.TestCase):
     def test_return_type(self):
         self.assertEqual(type(get_opening_positions()),list)
 
-"""
-    def test_list_length(self):
-        openings = get_opening_positions()
-        self.assertEqual(len(openings), 2)
-"""
+    # def test_list_length(self):
+    #     openings = get_opening_positions()
+    #     self.assertEqual(len(openings), 2)
+
 
 class TestListOpeningPositions(unittest.TestCase):
 
