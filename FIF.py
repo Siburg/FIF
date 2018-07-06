@@ -23,11 +23,11 @@ class Shareholding:
     """
     Holds information on shareholdings.
     code: a code or abbreviation to identify the share issuer.
-    start_holding : number of shares held at start of the tax period.
+    opening_holding : number of shares held at start of the tax period.
     holding: current number of shares held, as calculated from other
         inputs.
-    start_price: price per share at start of the tax period.
-    end_price: price per share at end of the tax period.
+    opening_price: price per share at start of the tax period.
+    closing_price: price per share at end of the tax period.
     currency: currency of the share prices.
 
     The numerical values for shareholdings and prices are stored as
@@ -39,7 +39,7 @@ class Shareholding:
     Consider it for addition later, or consider splitting the class
     later into a Share class and a Holding class.
     """
-    def __init__(self, code, start_holding='0', start_price='0.00', end_price='0.00',
+    def __init__(self, code, opening_holding='0', opening_price='0.00', closing_price='0.00',
                  currency='USD'):
         """
         Constructor function with defaults set to zero for numerical
@@ -47,12 +47,12 @@ class Shareholding:
         another default currency, e.g. AUD.
         """
         self.code = code
-        self.start_holding = Decimal(start_holding)
-        # holding is set to start_holding (after conversion to Decimal)
+        self.opening_holding = Decimal(opening_holding)
+        # holding is set to opening_holding (after conversion to Decimal)
         # at initialisation
-        self.holding = Decimal(start_holding)
-        self.start_price = Decimal(start_price)
-        self.end_price = Decimal(end_price)
+        self.holding = Decimal(opening_holding)
+        self.opening_price = Decimal(opening_price)
+        self.closing_price = Decimal(closing_price)
         self.currency = currency
         return
 
@@ -111,12 +111,12 @@ def get_opening_positions():
     return opening_positions
 
 
-def list_opening_positions(opening_positions):
+def process_opening_positions(opening_shareholdings):
     """
     Prints opening positions in a tabular format, followed by a total
     value in NZD.
 
-    opening_positions: list of shareholdings, as obtained from
+    opening_shareholdings: list of shareholdings, as obtained from
     get_opening_positions (i.e. without any updates from trades)
 
     Code is ignoring currencies for now. An exchange rate of 1 is
@@ -131,12 +131,13 @@ def list_opening_positions(opening_positions):
     print(header_format_string.format(
         'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
 
-    for share in opening_positions:
-        value = (share.start_holding * share.start_price).quantize(
+    for share in opening_shareholdings:
+        value = (share.opening_holding * share.opening_price).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         NZD_value = value   # assuming temporary FX rate of 1
         print(share_format_string.format(
-            share.code, share.start_holding, share.start_price, value, share.currency, NZD_value))
+            share.code, share.opening_holding, share.opening_price, value, share.currency,
+            NZD_value))
         total += NZD_value
 
     print(('{:>80}').format('---------------'))
@@ -152,11 +153,11 @@ def calc_FDR_basic(opening_positions, FDR_rate):
     :return:
     """
     # ignoring currencies for now
-    # this temporarily assumes start_price is in NZD
+    # this temporarily assumes opening_price is in NZD
     FDR_basic = Decimal('0.00')
     currency_FX_rate = Decimal('1')
     for share in opening_positions:
-        foreign_value = (share.start_holding * share.start_price).quantize(
+        foreign_value = (share.opening_holding * share.opening_price).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Note that we are first rounding off the value in foreign
         # currency, before additional rounding below. This can only
@@ -183,11 +184,58 @@ def get_trades():
     return trades
 
 
+def process_trades(trades):
+    """
+
+    :param trades:
+    :return:
+    """
+    cost_of_trades = Decimal('0.00')
+    return cost_of_trades
+
+
+def get_dividends():
+    """
+    ADD COMMENTS
+    :return:
+    """
+    dividends = []
+    return dividends
+
+
+def process_dividends(dividends):
+    """
+
+    :param dividends:
+    :return:
+    """
+    net_income_from_dividends = Decimal('0.00')
+    return net_income_from_dividends
+
+
+def get_closing_prices():
+    """
+
+    :return:
+    """
+    pass
+
+
+# consider new function to calculate closing value,
+# or refactor the opening value function to generalise it for cloasing as well
+
+
 def main():
-    opening_positions = get_opening_positions()
-    list_opening_positions(opening_positions)
-    calc_FDR_basic(opening_positions, FDR_RATE)
+    shareholdings = get_opening_positions()
+    opening_value = process_opening_positions(shareholdings)
+    calc_FDR_basic(shareholdings, FDR_RATE)
     trades = get_trades()
+    cost_of_trades = process_trades(trades)
+    dividends = get_dividends()
+    net_income_from_dividends = process_dividends()
+    get_closing_prices()
+    closing_value = 0 # think if we need separate closing function, or generalise opening
+    CV_income = closing_value + net_income_from_dividends - (opening_value + cost_of_trades)
 
 
 if __name__ == '__main__':

@@ -27,9 +27,9 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.currency, 'EUR')
 
     def test_start_holding(self):
-        self.assertEqual(self.someshare.start_holding, Decimal('0'))
-        self.assertEqual(self.emb.start_holding, Decimal('11'))
-        self.assertEqual(self.robeco.start_holding, Decimal('1.2345'))
+        self.assertEqual(self.someshare.opening_holding, Decimal('0'))
+        self.assertEqual(self.emb.opening_holding, Decimal('11'))
+        self.assertEqual(self.robeco.opening_holding, Decimal('1.2345'))
 
     def test_holding(self):
         self.assertEqual(self.someshare.holding, Decimal('0'))
@@ -37,14 +37,14 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.holding, Decimal('1.2345'))
 
     def test_start_price(self):
-        self.assertEqual(self.someshare.start_price, Decimal('0'))
-        self.assertEqual(self.emb.start_price, Decimal('100'))
-        self.assertEqual(self.robeco.start_price, Decimal('111.11'))
+        self.assertEqual(self.someshare.opening_price, Decimal('0'))
+        self.assertEqual(self.emb.opening_price, Decimal('100'))
+        self.assertEqual(self.robeco.opening_price, Decimal('111.11'))
 
     def test_end_price(self):
-        self.assertEqual(self.someshare.end_price, Decimal('0'))
-        self.assertEqual(self.emb.end_price, Decimal('110'))
-        self.assertEqual(self.robeco.end_price, Decimal('111.22'))
+        self.assertEqual(self.someshare.closing_price, Decimal('0'))
+        self.assertEqual(self.emb.closing_price, Decimal('110'))
+        self.assertEqual(self.robeco.closing_price, Decimal('111.22'))
 
     def test_representation(self):
         self.assertEqual(repr(self.someshare), 'some shareholding is 0 shares')
@@ -105,7 +105,7 @@ class TestGetOpeningPositions(unittest.TestCase):
     #     self.assertEqual(len(openings), 2)
 
 
-class TestListOpeningPositions(unittest.TestCase):
+class TesProcessOpeningPositions(unittest.TestCase):
 
     def setUp(self):
         self.someshare = Shareholding("some")
@@ -114,7 +114,7 @@ class TestListOpeningPositions(unittest.TestCase):
         self.opening_positions = [self.someshare, self.emb, self.robeco]
 
     def test_return(self):
-        self.assertEqual(list_opening_positions(self.opening_positions), Decimal('1100137.17'))
+        self.assertEqual(process_opening_positions(self.opening_positions), Decimal('1100137.17'))
 
     # test the rest visually for now from output to console generated
     # by test above
