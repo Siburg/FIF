@@ -114,8 +114,9 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.opening_positions = [self.someshare, self.emb, self.robeco]
 
     def test_return(self):
-        self.assertEqual(process_opening_positions(self.opening_positions, '0.05'), Decimal(
-            '1100137.17'))
+        self.assertEqual(type(process_opening_positions(self.opening_positions, '0.05')),tuple)
+        self.assertEqual(process_opening_positions(self.opening_positions, '0.05'), (Decimal(
+            '1100137.17'), Decimal('55006.86')))
 
     # test the rest visually for now from output to console generated
     # by test above

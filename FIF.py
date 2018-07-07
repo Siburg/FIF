@@ -13,6 +13,11 @@ July 2018
 
 No license (yet), but program is intended for public domain and may
 be considered open source
+
+Note: current version does not yet deal properly with exchange rates.
+It does not yet have adequate functionality for dates and times.
+It completely ignores, and will not work properly, with transactions
+such as share splits or share reorganisations.
 """
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
@@ -141,7 +146,9 @@ def process_opening_positions(opening_shareholdings, FDR_rate):
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        currency_FX_rate = Decimal('1') # obviously this needs work
+        currency_FX_rate = FX_rate(share.currency, '31-3-2017', 'month-end')
+        # obviously this needs work
+
         NZD_value = (foreign_value * currency_FX_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
@@ -220,12 +227,25 @@ def process_closing_prices(shareholdings):
     return closing_value
 
 
-def calc_QSA_adjustments():
+def calc_QSA():
     """
 
     :return:
     """
-    return
+    quick_sale_adjustments = Decimal(0.00)
+    return quick_sale_adjustments
+
+
+def FX_rate(currency, date, conversion_method):
+    """
+
+    :param currency:
+    :param date:
+    :param conversion_method:
+    :return:
+    """
+    exchange_rate = Decimal('1.0000')
+    return exchange_rate
 
 
 def main():
@@ -240,8 +260,8 @@ def main():
     # think if we need separate closing function, or generalise opening
     CV_income = closing_value + net_income_from_dividends - (opening_value + cost_of_trades)
     # calculate quick sale adjustments
-    QSA_income = calc_QSA_adjustments()
-    FDR_income = FDR_basic_income + QSA_income
+    quick_sale_adjustments = calc_QSA()
+    FDR_income = FDR_basic_income + quick_sale_adjustments
     FIF_income = max(0, min(FDR_income, CV_income))
 
 
