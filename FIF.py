@@ -111,9 +111,9 @@ def get_opening_positions():
     return opening_positions
 
 
-def process_opening_positions(opening_shareholdings):
+def process_opening_positions(opening_shareholdings, FDR_rate):
     """
-    Prints opening positions in a tabular format, followed by a total
+    Prints opening positions in a tabular format, followed by a opening_value
     value in NZD.
 
     opening_shareholdings: list of shareholdings, as obtained from
@@ -125,54 +125,41 @@ def process_opening_positions(opening_shareholdings):
     header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
     share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
-    # count those spaces for the total line width.
-    total = Decimal('0.00')
+    # count those spaces for the opening_value line width.
+
+    opening_value = Decimal('0.00')
+    FDR_basic_income = Decimal('0.00')
+
     print('Opening positions')
     print(header_format_string.format(
         'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
 
     for share in opening_shareholdings:
-        value = (share.opening_holding * share.opening_price).quantize(
-            Decimal('0.01'), ROUND_HALF_UP)
-        NZD_value = value   # assuming temporary FX rate of 1
-        print(share_format_string.format(
-            share.code, share.opening_holding, share.opening_price, value, share.currency,
-            NZD_value))
-        total += NZD_value
-
-    print(('{:>80}').format('---------------'))
-    print(('{:40}{:>40,.2f}').format('total NZD value', total))
-    return total
-
-
-def calc_FDR_basic(opening_positions, FDR_rate):
-    """
-    ADD BETTER COMMENTS
-    :param opening_positions:
-    :param FDR_rate:
-    :return:
-    """
-    # ignoring currencies for now
-    # this temporarily assumes opening_price is in NZD
-    FDR_basic = Decimal('0.00')
-    currency_FX_rate = Decimal('1')
-    for share in opening_positions:
         foreign_value = (share.opening_holding * share.opening_price).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Note that we are first rounding off the value in foreign
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
+        currency_FX_rate = Decimal('1') # obviously this needs work
         NZD_value = (foreign_value * currency_FX_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
+        opening_value += NZD_value
 
-        FDR_basic += (NZD_value * Decimal(FDR_rate)).quantize(
-            Decimal('0.01'), rounding = ROUND_HALF_UP)
+        FDR_basic_income += (NZD_value * Decimal(FDR_rate)).quantize(
+            Decimal('0.01'), rounding=ROUND_HALF_UP)
         # It appears that FIF needs to be calculated for each security.
         # That's why final rounding is done per share, after
         # multiplying eachshare with the FDR_rate.
-    return FDR_basic
+
+        print(share_format_string.format(
+            share.code, share.opening_holding, share.opening_price, foreign_value, share.currency,
+            NZD_value))
+
+    print(('{:>80}').format('---------------'))
+    print(('{:40}{:>40,.2f}').format('opening_value NZD value', opening_value))
+    return opening_value, FDR_basic_income
 
 
 def get_trades():
@@ -218,24 +205,44 @@ def get_closing_prices():
 
     :return:
     """
-    pass
+    return
 
 
 # consider new function to calculate closing value,
 # or refactor the opening value function to generalise it for cloasing as well
+def process_closing_prices(shareholdings):
+    """
+
+    :param shareholdings:
+    :return:
+    """
+    closing_value = Decimal('0.00')
+    return closing_value
+
+
+def calc_QSA_adjustments():
+    """
+
+    :return:
+    """
+    return
 
 
 def main():
     shareholdings = get_opening_positions()
-    opening_value = process_opening_positions(shareholdings)
-    calc_FDR_basic(shareholdings, FDR_RATE)
+    opening_value, FDR_basic_income = process_opening_positions(shareholdings, FDR_RATE)
     trades = get_trades()
     cost_of_trades = process_trades(trades)
     dividends = get_dividends()
-    net_income_from_dividends = process_dividends()
-    get_closing_prices()
-    closing_value = 0 # think if we need separate closing function, or generalise opening
+    net_income_from_dividends = process_dividends(dividends)
+    get_closing_prices(shareholdings)
+    closing_value = process_closing_prices(shareholdings)
+    # think if we need separate closing function, or generalise opening
     CV_income = closing_value + net_income_from_dividends - (opening_value + cost_of_trades)
+    # calculate quick sale adjustments
+    QSA_income = calc_QSA_adjustments()
+    FDR_income = FDR_basic_income + QSA_income
+    FIF_income = max(0, min(FDR_income, CV_income))
 
 
 if __name__ == '__main__':
