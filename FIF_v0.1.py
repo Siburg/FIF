@@ -9,8 +9,8 @@ Note that some tax payers may use other methods as well or instead.
 Such other methods are not covered by this program.
 
 by Jelle Sjoerdsma
-July 2018
-version 0.2
+9 July 2018
+version 0.1
 
 No license (yet), but program is intended for public domain and may
 be considered open source
@@ -19,64 +19,52 @@ Note: current version does not yet deal properly with exchange rates.
 It does not yet have adequate functionality for dates and times.
 It completely ignores, and will not work properly, with transactions
 such as share splits or share reorganisations.
+
+In this version trades and dividens are treated seperately from
+shareholdings, which combines info from holdings and share. This
+version frozen for now, in order to have revised version which
+retains info on shareholdings over time.
 """
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 
 FDR_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
-class Share:
+class Shareholding:
     """
-    Holds information on shares and shareholdings.
-    Input arguments:
-    code: a code, abbreviation or symbol to identify the share issuer.
-    currency: currency of the share prices.
+    Holds information on shareholdings.
+    code: a code or abbreviation to identify the share issuer.
     opening_holding : number of shares held at start of the tax period.
-    opening_price: price per share at start of the tax period.
-
-    Other instance variables that are available:
     holding: current number of shares held, as calculated from other
         inputs.
+    opening_price: price per share at start of the tax period.
     closing_price: price per share at end of the tax period.
-    opening_value: to be calculated, and remembered
-    net_income_from_dividends: to be calculated, and remembered
-    cost_of_trades: to be calculated, and remembered
-    closing_value: to be calculated, and remembered
-    quick_sale_adjustments: to be calculated,  if needed, and remembered
+    currency: currency of the share prices.
 
-    All numerical values are stored as Decimals. It is strongly
-    recommended to pass numerical values for them as strings (or
-    already in the form of Decimals), so they can be accurately
-    converted to Decimals.
+    The numerical values for shareholdings and prices are stored as
+    Decimals. It is strongly recommended to pass numerical values for
+    them as strings (or already in the form of Decimals), so they can
+    be accurately converted to Decimals.
 
-    The full share name or description is not currently a variable in
-    this class. Consider it for addition later. Also consider splitting
-    the class later into a Share class and a Holding class, or have
-    a list of shareholdings over time inside the class.
+    The full share name is not currently a variable in this class.
+    Consider it for addition later, or consider splitting the class
+    later into a Share class and a Holding class.
     """
-    def __init__(self, code, currency='USD', opening_holding='0', opening_price='0.00'):
+    def __init__(self, code, opening_holding='0', opening_price='0.00', closing_price='0.00',
+                 currency='USD'):
         """
         Constructor function with defaults set to zero for numerical
         values. Default for currency is USD. Change that if you wish
         another default currency, e.g. AUD.
         """
         self.code = code
-        self.currency = currency
         self.opening_holding = Decimal(opening_holding)
-        self.opening_price = Decimal(opening_price)
-
-        # Variables below are not immediately needed when creating the
-        # object, but will be used later. They are set up here in
-        # preparation and for clarity.
-        self.holding = Decimal(opening_holding)
         # holding is set to opening_holding (after conversion to Decimal)
         # at initialisation
-        self.closing_price = Decimal('0.00')
-        self.opening_value = Decimal('0.00')
-        self.net_income_from_dividends = Decimal('0.00')
-        self.cost_of_trades = Decimal('0.00')
-        self.closing_value = Decimal('0.00')
-        self.quick_sale_adjustments = Decimal('0.00')
+        self.holding = Decimal(opening_holding)
+        self.opening_price = Decimal(opening_price)
+        self.closing_price = Decimal(closing_price)
+        self.currency = currency
         return
 
     def increase_holding(self, increase):
@@ -98,6 +86,24 @@ class Share:
             self.code, self.holding)
 
 
+class Trade:
+    """
+    add comments
+    """
+    def __init__(self, code, date, share_change, price, costs):
+        self.code = code
+        # add functions to parse date into a datetime object
+        self.date = date
+        self.share_change = share_change
+        self.price = price
+        self.costs = costs
+        self.charge = Decimal(share_change) * Decimal(price) + Decimal(costs)
+
+    def __repr__(self):
+        return ('trade for {} shares of {} on {} at {} with costs of {}').format(
+               self.share_change, self.code, self.date, self.price, self.costs)
+
+
 class Dividend:
     def __init__(self, code, date, per_share, paid):
         self.code = code
@@ -111,35 +117,17 @@ class Dividend:
                self.paid, self.date, self.code, self.per_share)
 
 
-class Trade:
-    """
-    add comments
-    """
-    def __init__(self, code, date, number_of_shares, share_price, trade_costs):
-        self.code = code
-        # add functions to parse date into a datetime object
-        self.date = date
-        self.number_of_shares = number_of_shares
-        self.share_price = share_price
-        self.trade_costs = trade_costs
-        self.charge = Decimal(number_of_shares) * Decimal(share_price) + Decimal(trade_costs)
-
-    def __repr__(self):
-        return ('trade for {} shares of {} on {} at {} with costs of {}').format(
-               self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
-
-
 def get_opening_positions():
     opening_positions = []
     return opening_positions
 
 
-def process_opening_positions(opening_shares, FDR_rate):
+def process_opening_positions(opening_shareholdings, FDR_rate):
     """
     Prints opening positions in a tabular format, followed by a opening_value
     value in NZD.
 
-    opening_shares: list of shareholdings, as obtained from
+    opening_shareholdings: list of shareholdings, as obtained from
     get_opening_positions (i.e. without any updates from trades)
 
     Code is ignoring currencies for now. An exchange rate of 1 is
@@ -150,14 +138,14 @@ def process_opening_positions(opening_shares, FDR_rate):
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
 
-    total_opening_value = Decimal('0.00')
+    opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
 
     print('Opening positions')
     print(header_format_string.format(
         'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
 
-    for share in opening_shares:
+    for share in opening_shareholdings:
         foreign_value = (share.opening_holding * share.opening_price).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Note that we are first rounding off the value in foreign
@@ -167,13 +155,10 @@ def process_opening_positions(opening_shares, FDR_rate):
         currency_FX_rate = FX_rate(share.currency, '31-3-2017', 'month-end')
         # obviously this needs work
 
-        # Make this a separate rounding as well.
         NZD_value = (foreign_value * currency_FX_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
-
-        # Next statement stores the resulting variable in Share object
-        share.opening_value = NZD_value
-        total_opening_value += NZD_value
+        # Make this a separate rounding as well.
+        opening_value += NZD_value
 
         FDR_basic_income += (NZD_value * Decimal(FDR_rate)).quantize(
             Decimal('0.01'), rounding=ROUND_HALF_UP)
@@ -186,27 +171,8 @@ def process_opening_positions(opening_shares, FDR_rate):
             NZD_value))
 
     print(('{:>80}').format('---------------'))
-    print(('{:40}{:>40,.2f}').format('total opening value', total_opening_value))
-    return total_opening_value, FDR_basic_income
-
-
-def get_dividends():
-    """
-    ADD COMMENTS
-    :return:
-    """
-    dividends = []
-    return dividends
-
-
-def process_dividends(dividends):
-    """
-
-    :param dividends:
-    :return:
-    """
-    net_income_from_dividends = Decimal('0.00')
-    return net_income_from_dividends
+    print(('{:40}{:>40,.2f}').format('opening_value NZD value', opening_value))
+    return opening_value, FDR_basic_income
 
 
 def get_trades():
@@ -228,6 +194,25 @@ def process_trades(trades):
     return cost_of_trades
 
 
+def get_dividends():
+    """
+    ADD COMMENTS
+    :return:
+    """
+    dividends = []
+    return dividends
+
+
+def process_dividends(dividends):
+    """
+
+    :param dividends:
+    :return:
+    """
+    net_income_from_dividends = Decimal('0.00')
+    return net_income_from_dividends
+
+
 def get_closing_prices():
     """
 
@@ -238,10 +223,10 @@ def get_closing_prices():
 
 # consider new function to calculate closing value,
 # or refactor the opening value function to generalise it for cloasing as well
-def process_closing_prices(shares):
+def process_closing_prices(shareholdings):
     """
 
-    :param shares:
+    :param shareholdings:
     :return:
     """
     closing_value = Decimal('0.00')
@@ -270,15 +255,15 @@ def FX_rate(currency, date, conversion_method):
 
 
 def main():
-    shares = get_opening_positions()
+    shareholdings = get_opening_positions()
     # get exchange rates
-    opening_value, FDR_basic_income = process_opening_positions(shares, FDR_RATE)
-    dividends = get_dividends()
-    net_income_from_dividends = process_dividends(dividends)
+    opening_value, FDR_basic_income = process_opening_positions(shareholdings, FDR_RATE)
     trades = get_trades()
     cost_of_trades = process_trades(trades)
-    get_closing_prices(shares)
-    closing_value = process_closing_prices(shares)
+    dividends = get_dividends()
+    net_income_from_dividends = process_dividends(dividends)
+    get_closing_prices(shareholdings)
+    closing_value = process_closing_prices(shareholdings)
     # think if we need separate closing function, or generalise opening
     CV_income = closing_value + net_income_from_dividends - (opening_value + cost_of_trades)
     # calculate quick sale adjustments
