@@ -4,6 +4,8 @@ from FIF import *
 import unittest
 #from unittest import mock
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
+from collections import namedtuple
+
 
 class TestShare(unittest.TestCase):
     def setUp(self):

@@ -22,6 +22,7 @@ such as share splits or share reorganisations.
 """
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
+from collections import namedtuple
 
 FDR_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
@@ -76,7 +77,7 @@ class Share:
         self.net_income_from_dividends = Decimal('0.00')
         self.cost_of_trades = Decimal('0.00')
         self.closing_value = Decimal('0.00')
-        self.quick_sale_adjustments = Decimal('0.00')
+        self.quick_sale_adjustments = None  # most shares won't need it
         return
 
     def increase_holding(self, increase):
@@ -139,7 +140,7 @@ def process_opening_positions(opening_shares, FDR_rate):
     Prints opening positions in a tabular format, followed by a opening_value
     value in NZD.
 
-    opening_shares: list of shareholdings, as obtained from
+    opening_shares: list of shares, as obtained from
     get_opening_positions (i.e. without any updates from trades)
 
     Code is ignoring currencies for now. An exchange rate of 1 is
@@ -171,7 +172,7 @@ def process_opening_positions(opening_shares, FDR_rate):
         NZD_value = (foreign_value * currency_FX_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
 
-        # Next statement stores the resulting variable in Share object
+        # Next statement stores the result in Share object
         share.opening_value = NZD_value
         total_opening_value += NZD_value
 
@@ -190,7 +191,7 @@ def process_opening_positions(opening_shares, FDR_rate):
     return total_opening_value, FDR_basic_income
 
 
-def get_dividends():
+def get_dividends(shares):
     """
     ADD COMMENTS
     :return:
@@ -199,7 +200,7 @@ def get_dividends():
     return dividends
 
 
-def process_dividends(dividends):
+def process_dividends(shares, dividends):
     """
 
     :param dividends:
@@ -209,7 +210,7 @@ def process_dividends(dividends):
     return net_income_from_dividends
 
 
-def get_trades():
+def get_trades(shares):
     """
     ADD COMMENTS
     :return:
@@ -218,7 +219,7 @@ def get_trades():
     return trades
 
 
-def process_trades(trades):
+def process_trades(shares, trades):
     """
 
     :param trades:
@@ -228,27 +229,53 @@ def process_trades(trades):
     return cost_of_trades
 
 
-def get_closing_prices():
+def get_closing_prices(shares):
     """
 
     :return:
     """
-    return
+    closing_prices = []
+    closing_price_tuple = namedtuple('closing_price_tuple', 'code, price')
+    return closing_prices
 
 
-# consider new function to calculate closing value,
-# or refactor the opening value function to generalise it for cloasing as well
-def process_closing_prices(shares):
+def process_closing_prices(shares, closing_prices):
     """
 
     :param shares:
     :return:
     """
-    closing_value = Decimal('0.00')
-    return closing_value
+    total_closing_value = Decimal('0.00')
+
+    for closing_price_tuple in closing_prices:
+        # assume that we did indeed obtain a closing price for every
+        # share with a closing holding > 0
+        for share in shares:
+            # assume the lists are not sorted by share code
+            if closing_price_tuple.code == share.code:
+                share.closing_price = closing_price_tuple.price
+
+                foreign_value = (share.holding * share.closing_price).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+                # Note that we are first rounding off the value in foreign
+                # currency, before additional rounding below. This can only
+                # be an issue for shares with fractional holdings.
+
+                currency_FX_rate = FX_rate(share.currency, '31-3-2018', 'month-end')
+                # obviously this needs work
+
+                # Make this a separate rounding as well.
+                NZD_value = (foreign_value * currency_FX_rate).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+
+                # Next statement stores the result in Share object
+                share.closing_value = NZD_value
+                total_closing_value += NZD_value
+
+    return total_closing_value
 
 
-def calc_QSA():
+def calc_QSA(shares):
     """
 
     :return:
@@ -273,16 +300,15 @@ def main():
     shares = get_opening_positions()
     # get exchange rates
     opening_value, FDR_basic_income = process_opening_positions(shares, FDR_RATE)
-    dividends = get_dividends()
-    net_income_from_dividends = process_dividends(dividends)
-    trades = get_trades()
-    cost_of_trades = process_trades(trades)
-    get_closing_prices(shares)
-    closing_value = process_closing_prices(shares)
-    # think if we need separate closing function, or generalise opening
+    dividends = get_dividends(shares)
+    net_income_from_dividends = process_dividends(shares, dividends)
+    trades = get_trades(shares)
+    cost_of_trades = process_trades(shares, trades)
+    closing_prices = get_closing_prices(shares)
+    closing_value = process_closing_prices(shares, closing_prices)
     CV_income = closing_value + net_income_from_dividends - (opening_value + cost_of_trades)
     # calculate quick sale adjustments
-    quick_sale_adjustments = calc_QSA()
+    quick_sale_adjustments = calc_QSA(shares)
     FDR_income = FDR_basic_income + quick_sale_adjustments
     FIF_income = max(0, min(FDR_income, CV_income))
 
