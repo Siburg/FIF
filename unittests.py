@@ -2,7 +2,7 @@
 
 from FIF import *
 import unittest
-#from unittest import mock
+# from unittest import mock
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 
@@ -47,6 +47,33 @@ class TestShare(unittest.TestCase):
         self.assertEqual(repr(self.someshare), 'some shareholding is 0 shares')
         self.assertEqual(repr(self.emb), 'EMB shareholding is 1100 shares')
         self.assertEqual(repr(self.robeco), 'Robeco shareholding is 1.2345 shares')
+
+    def test_other_initialisations(self):
+        self.assertEqual(self.someshare.closing_price, Decimal('0'))
+        self.assertEqual(self.emb.opening_value, Decimal('0'))
+        self.assertEqual(self.robeco.net_income_from_dividends, Decimal('0'))
+        self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
+        self.assertEqual(self.emb.closing_value, Decimal('0'))
+        self.assertEqual(self.robeco.quick_sale_adjustments, None)
+
+    def test_re_initialise_with_prior_year_closing_values(self):
+        self.someshare.quick_sale_adjustments = 1
+        self.emb.closing_price = Decimal('1200')
+        self.emb.closing_value = Decimal('2400000')
+        self.emb.holding = Decimal('2000')
+        self.emb.net_income_from_dividends = Decimal('1234')
+        self.emb.cost_of_trades = Decimal('1100000')
+        self.emb.quick_sale_adjustments = Decimal('99')
+        self.someshare.re_initialise_with_prior_year_closing_values()
+        self.emb.re_initialise_with_prior_year_closing_values()
+        self.assertEqual(self.someshare.quick_sale_adjustments, 1)
+        # because it should not have changed
+        self.assertEqual(self.emb.opening_price, Decimal('1200'))
+        self.assertEqual(self.emb.opening_value, Decimal('2400000'))
+        self.assertEqual(self.emb.opening_holding, Decimal('2000'))
+        self.assertEqual(self.emb.net_income_from_dividends, Decimal('0'))
+        self.assertEqual(self.emb.cost_of_trades, Decimal('0'))
+        self.assertEqual(self.emb.quick_sale_adjustments, None)
 
     def test_increase_holding(self):
         self.assertEqual(self.someshare.increase_holding('0'), Decimal('0'))
@@ -175,7 +202,45 @@ class TestCalcFDRBasic(unittest.TestCase):
 class TestGetTrades(unittest.TestCase):
 
     def test_return_type(self):
-        self.assertEqual(type(get_trades()),list)
+        shares = [] # needs to be moved to a proper setup
+        self.assertEqual(type(get_trades(shares)),list)
+
+
+class TestProcessClosingPrices(unittest.TestCase):
+
+    def setUp(self):
+        self.someshare = Share('some')
+        self.emb = Share('EMB', 'USD', '1100', '1000.')
+        self.emb.holding = Decimal('2000')
+        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        self.robeco.holding = Decimal('1.9876')
+        self.shares = [self.someshare, self.emb, self.robeco]
+        closing_price_info = namedtuple('closing_price_info', 'code, price')
+        embprice = closing_price_info('EMB', '1200.00')
+        robecoprice = closing_price_info('Robeco', '122.22')
+        dummyprice = closing_price_info('dummy', '99')
+        self.closing_prices = [robecoprice, dummyprice, embprice]
+        # closing_price order mixed up
+        self.result = process_closing_prices(self.shares, self.closing_prices)
+
+    def test_return(self):
+        self.assertEqual(type(self.result), Decimal)
+        self.assertEqual(self.result, Decimal('2400242.92'))
+
+    def test_closing_prices(self):
+        self.assertEqual(self.emb.closing_price, Decimal('1200'))
+        self.assertEqual(self.robeco.closing_price, Decimal('122.22'))
+        self.assertEqual(self.someshare.closing_price, Decimal('0'))
+        # should not have changed
+
+    def test_closing_values(self):
+        self.assertEqual(self.emb.closing_value, Decimal('2400000'))
+        self.assertEqual(self.robeco.closing_value, Decimal('242.92'))
+        self.assertEqual(self.someshare.closing_value, Decimal('0'))
+        # should not have changed
+
+    # test the rest visually for now from output to console generated
+    # by test above
 
 
 if __name__ == '__main__':

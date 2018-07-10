@@ -26,6 +26,7 @@ from collections import namedtuple
 
 FDR_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
+
 class Share:
     """
     Holds information on shares and shareholdings.
@@ -80,6 +81,27 @@ class Share:
         self.quick_sale_adjustments = None  # most shares won't need it
         return
 
+    def re_initialise_with_prior_year_closing_values(self):
+        """
+        Function that can be used at the start of a tax year to reset
+        shares with closing values read in from a prior tax year. The
+        opening values are set to those prior closing values, and
+        closing values are reinitialised.
+        Nothing happens if closing_value is not positive, on the
+        assumption that this means the share has been re-initialised
+        already, or is not a valid prior year share.
+        """
+        if self.closing_value > 0:
+            self.opening_holding = self.holding
+            self.opening_price = self.closing_price
+            self.opening_value = self.closing_value
+            self.closing_price = Decimal('0.00')
+            self.net_income_from_dividends = Decimal('0.00')
+            self.cost_of_trades = Decimal('0.00')
+            self.closing_value = Decimal('0.00')
+            self.quick_sale_adjustments = None  # most shares won't need it
+        return
+
     def increase_holding(self, increase):
         """
         Adds Decimal value of increase to holding. This means a
@@ -95,7 +117,7 @@ class Share:
         return self.holding
 
     def __repr__(self):
-        return ('{} shareholding is {} shares').format(
+        return '{} shareholding is {} shares'.format(
             self.code, self.holding)
 
 
@@ -108,7 +130,7 @@ class Dividend:
         self.paid = paid
 
     def __repr__(self):
-        return ('dividend of {} on {} for {} at {} per share').format(
+        return 'dividend of {} on {} for {} at {} per share'.format(
                self.paid, self.date, self.code, self.per_share)
 
 
@@ -126,7 +148,7 @@ class Trade:
         self.charge = Decimal(number_of_shares) * Decimal(share_price) + Decimal(trade_costs)
 
     def __repr__(self):
-        return ('trade for {} shares of {} on {} at {} with costs of {}').format(
+        return 'trade for {} shares of {} on {} at {} with costs of {}'.format(
                self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
 
 
@@ -154,7 +176,7 @@ def process_opening_positions(opening_shares, FDR_rate):
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
 
-    print('Opening positions')
+    print('\nOpening positions')
     print(header_format_string.format(
         'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
 
@@ -186,8 +208,8 @@ def process_opening_positions(opening_shares, FDR_rate):
             share.code, share.opening_holding, share.opening_price, foreign_value, share.currency,
             NZD_value))
 
-    print(('{:>80}').format('---------------'))
-    print(('{:40}{:>40,.2f}').format('total opening value', total_opening_value))
+    print('{:>80}'.format('---------------'))
+    print('{:40}{:>40,.2f}\n'.format('total opening value', total_opening_value))
     return total_opening_value, FDR_basic_income
 
 
@@ -235,7 +257,7 @@ def get_closing_prices(shares):
     :return:
     """
     closing_prices = []
-    closing_price_tuple = namedtuple('closing_price_tuple', 'code, price')
+    closing_price_info = namedtuple('closing_price_info', 'code, price')
     return closing_prices
 
 
@@ -245,15 +267,24 @@ def process_closing_prices(shares, closing_prices):
     :param shares:
     :return:
     """
+    header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
+    share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
+    # Note there are spaces between the {} items, so don't forget to
+    # count those spaces for the opening_value line width.
+
     total_closing_value = Decimal('0.00')
 
-    for closing_price_tuple in closing_prices:
+    print('\nClosing positions')
+    print(header_format_string.format(
+        'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
+
+    for closing_price_info in closing_prices:
         # assume that we did indeed obtain a closing price for every
         # share with a closing holding > 0
         for share in shares:
             # assume the lists are not sorted by share code
-            if closing_price_tuple.code == share.code:
-                share.closing_price = closing_price_tuple.price
+            if share.code == closing_price_info.code:
+                share.closing_price = Decimal(closing_price_info.price)
 
                 foreign_value = (share.holding * share.closing_price).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
@@ -272,6 +303,19 @@ def process_closing_prices(shares, closing_prices):
                 share.closing_value = NZD_value
                 total_closing_value += NZD_value
 
+                print(share_format_string.format(
+                    share.code, share.holding, share.closing_price, foreign_value,
+                    share.currency, NZD_value))
+
+    # consider adding printout for shares that do not have a closing
+    # price or value
+
+    print('{:>80}'.format('---------------'))
+    print('{:40}{:>40,.2f}\n'.format('total closing value', total_closing_value))
+
+    # closing_price and closing_value in share instances have been
+    # updated as well. Because shares is a mutable list, this does not
+    # need to be part of the return.
     return total_closing_value
 
 
