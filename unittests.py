@@ -94,12 +94,23 @@ class TestShare(unittest.TestCase):
 class TestDividend(unittest.TestCase):
     def setUp(self):
         self.emb_div = Dividend("EMB", 'feb', '0.023', '0.46')
+        self.large_div = Dividend('large', '30-11-2017', '100', '100000')
+        self.partial_div = Dividend('partial', '1 Mar 2018', '10', '1.23')
 
     def test_existence(self):
         self.assertIsInstance(self.emb_div, Dividend)
 
     def test_representation(self):
         self.assertEqual(repr(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
+        self.assertEqual(repr(self.large_div),
+            'dividend of 100,000.00 on 30-11-2017 for large at 100 per share')
+        self.assertEqual(repr(self.partial_div),
+            'dividend of 1.23 on 1 Mar 2018 for partial at 10 per share')
+
+    def test_eligible_shares(self):
+        self.assertEqual(self.emb_div.eligible_shares, Decimal('20'))
+        self.assertEqual(self.large_div.eligible_shares, Decimal('1000'))
+        self.assertEqual(self.partial_div.eligible_shares, Decimal('0.123'))
 
 
 class TestTrade(unittest.TestCase):
@@ -147,18 +158,18 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.assertEqual(self.emb.opening_value, Decimal('1100000'))
         self.assertEqual(self.robeco.opening_value, Decimal('137.17'))
 
+    def test_FDR_basic_income_calculations(self):
+        pass
+        # copy tests from the skipped tests for TestCalcFDRBasic below,
+        # but do something
+        # to avoid print output every time a test is run
+
     # test the rest visually for now from output to console generated
     # by test above
 
 
 @unittest.skip  #need to revise this after integrating it with previous function
 class TestCalcFDRBasic(unittest.TestCase):
-
-    def test_return_exists(self):
-        self.opening_positions = []
-        FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
-        # review this for improvement
-        self.assertTrue(FDR_basic >= 0)
 
     def test_single_share(self):
         self.opening_positions = [Share('share1', '100', '1.00')]

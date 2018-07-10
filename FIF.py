@@ -122,15 +122,49 @@ class Share:
 
 
 class Dividend:
+    """
+    Holds information on dividens.
+    Could conceivably be replaced with a dict, or a namedtuple, or
+    another type of object.
+
+    Input arguments:
+    code: a code, abbreviation or symbol to identify the share issuer.
+    date: the payment date for the dividend (not the declaration date
+        or other type of date). This should be in the form of a
+        datetime object
+    per_share: the dividend per share, in its native currency, as
+        declared by the issues
+    paid: the gross sum paid, before any withholding or other taxes,
+        in its native currency, for the dividend
+
+    Other instance variables that are available:
+    eligible_shares: the number of shares for which the dividend was
+        paid; calculated as paid / per_share. Note that this number
+        can be different from the shares held on the payment date,
+        because not all of those may have been eligible (yet) for the
+        dividend.
+
+    All numerical values are stored as Decimals. It is strongly
+    recommended to pass numerical values for them as strings (or
+    already in the form of Decimals), so they can be accurately
+    converted to Decimals.
+
+    The class does not yet hold information on withholding or other
+    taxes on dividends. This probably still needs to be added.
+    """
     def __init__(self, code, date, per_share, paid):
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
-        self.per_share = per_share
-        self.paid = paid
+        self.per_share = Decimal(per_share)
+        self.paid = Decimal(paid)
+        # consider something for tax
+        # Note that self.paid should be gross before tax, or the
+        # calculation below will need to be modified for tax effects.
+        self.eligible_shares = self.paid / self.per_share
 
     def __repr__(self):
-        return 'dividend of {} on {} for {} at {} per share'.format(
+        return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
                self.paid, self.date, self.code, self.per_share)
 
 
@@ -307,8 +341,18 @@ def process_closing_prices(shares, closing_prices):
                     share.code, share.holding, share.closing_price, foreign_value,
                     share.currency, NZD_value))
 
-    # consider adding printout for shares that do not have a closing
-    # price or value
+                # no need to continue inner loop after having the share
+                # matching the closing_price_info.code
+                break
+
+    # Also print shares that do not have a closing price or value.
+    # This could risk double printing if a zero price is included in
+    # the closing_prices list, but is otherwise harmless.
+    for share in shares:
+        if share.closing_price == Decimal(0) or share.holding == Decimal(0):
+            print(share_format_string.format(
+                share.code, share.holding, share.closing_price, 0,
+                share.currency, 0))
 
     print('{:>80}'.format('---------------'))
     print('{:40}{:>40,.2f}\n'.format('total closing value', total_closing_value))
