@@ -107,6 +107,10 @@ class TestDividend(unittest.TestCase):
         self.assertEqual(repr(self.partial_div),
             'dividend of 1.23 on 1 Mar 2018 for partial at 10 per share')
 
+    def test_variables(self):
+        self.assertEqual(self.emb_div.per_share, Decimal('0.023'))
+        self.assertEqual(self.emb_div.paid, Decimal('0.46'))
+
     def test_eligible_shares(self):
         self.assertEqual(type(self.emb_div.eligible_shares), Decimal)
         self.assertEqual(self.emb_div.eligible_shares, Decimal('20'))
@@ -116,13 +120,30 @@ class TestDividend(unittest.TestCase):
 
 class TestTrade(unittest.TestCase):
     def setUp(self):
-        self.veu_trade = Trade('VEU', "jan", '10', '115.0', '1.23')
+        self.veu_trade = Trade('VEU', "jan", '10', '115', '1.23')
+        self.emb_trade = Trade('EMB', '01-02-18', '-1000', '90.99', '4.56')
 
     def test_existence(self):
         self.assertIsInstance(self.veu_trade, Trade)
 
     def test_representation(self):
-        self.assertEqual(repr(self.veu_trade), 'trade for 10 shares of VEU on jan at 115.0 with costs of 1.23')
+        self.assertEqual(repr(self.veu_trade),
+            'trade for 10 shares of VEU on jan at 115.00 with costs of 1.23')
+        self.assertEqual(repr(self.emb_trade),
+            'trade for -1,000 shares of EMB on 01-02-18 at 90.99 with costs of 4.56')
+
+    def test_variables(self):
+        self.assertEqual(self.veu_trade.number_of_shares, Decimal('10'))
+        self.assertEqual(self.veu_trade.share_price, Decimal('115'))
+        self.assertEqual(self.veu_trade.trade_costs, Decimal('1.23'))
+        self.assertEqual(self.emb_trade.number_of_shares, Decimal('-1000'))
+        self.assertEqual(self.emb_trade.share_price, Decimal('90.99'))
+        self.assertEqual(self.emb_trade.trade_costs, Decimal('4.56'))
+
+    def test_charge_calculation(self):
+        self.assertEqual(self.veu_trade.charge, Decimal('1151.23'))
+        self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
+
 
 class TestGetOpeningPositions(unittest.TestCase):
 
@@ -251,6 +272,33 @@ class TestGetTrades(unittest.TestCase):
     def test_return_type(self):
         shares = [] # needs to be moved to a proper setup
         self.assertEqual(type(get_trades(shares)),list)
+
+
+class TestProcessTrades(unittest.TestCase):
+
+    def setUp(self):
+        self.someshare = Share('some')
+        self.emb = Share('EMB', 'USD', '1100', '1000.')
+        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        self.shares = [self.someshare, self.emb, self.robeco]
+        self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
+        self.emb_trade1 = Trade('EMB', '01-02-18', '-1000', '90.99', '4.56')
+        self.emb_trade2 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
+        self.trades = [self.emb_trade1, self.robeco_trade, self.emb_trade2]
+        self.result = process_trades(self.shares, self.trades)
+
+    def test_return(self):
+        self.assertEqual(type(self.result), Decimal)
+        self.assertEqual(self.result, Decimal('210178.13'))
+
+    def test_share_updates(self):
+        self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
+        # should not have changed
+        self.assertEqual(self.robeco.cost_of_trades, Decimal('1151.23'))
+        self.assertEqual(self.emb.cost_of_trades, Decimal('209026.9'))
+
+    # test the rest visually for now from output to console generated
+    # by test above
 
 
 class TestProcessClosingPrices(unittest.TestCase):

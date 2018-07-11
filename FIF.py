@@ -176,13 +176,13 @@ class Trade:
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
-        self.number_of_shares = number_of_shares
-        self.share_price = share_price
-        self.trade_costs = trade_costs
-        self.charge = Decimal(number_of_shares) * Decimal(share_price) + Decimal(trade_costs)
+        self.number_of_shares = Decimal(number_of_shares)
+        self.share_price = Decimal(share_price)
+        self.trade_costs = Decimal(trade_costs)
+        self.charge = self.number_of_shares * self.share_price + self.trade_costs
 
     def __repr__(self):
-        return 'trade for {} shares of {} on {} at {} with costs of {}'.format(
+        return 'trade for {:,f} shares of {} on {} at {:,.2f} with costs of {:,.2f}'.format(
                self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
 
 
@@ -205,7 +205,7 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
     fair_dividend_rate: the statutory Fair Dividend Rate. This should
         be provided as a string or a Decimal.
 
-    return: tuple with
+    return: (tuple with)
     total_opening_value: in NZD
     FDR_basic_income: total from calculations (and roundings) per share
 
@@ -282,7 +282,7 @@ def process_dividends(shares, dividends):
     # count those spaces for the opening_value line width.
     print('\nDividends')
     print(header_format_string.format(
-         'share code', 'payment date', 'shares', 'dividend', 'foreign value', 'currency',
+        'share code', 'payment date', 'shares', 'dividend', 'foreign value', 'currency',
         'NZD value'))
 
     for share in shares:
@@ -307,7 +307,6 @@ def process_dividends(shares, dividends):
         share.gross_income_from_dividends = share_income_from_dividends
         total_income_from_dividends += share_income_from_dividends
 
-
     print('{:>95}'.format('---------------'))
     print('{:55}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
     # gross_income_from_dividends in share instances have been
@@ -331,8 +330,53 @@ def process_trades(shares, trades):
     :param trades:
     :return:
     """
-    cost_of_trades = Decimal('0.00')
-    return cost_of_trades
+    total_cost_of_trades = Decimal('0.00')
+
+    header_format_string = '{:15} {:14} {:>12} {:>10} {:>11} {:>15} {:8} {:>15}'
+    trade_format_string = '{:15} {:14} {:12,f} {:10,.2f} {:11,.2f} {:15,.2f} {:8} {:15,.2f}'
+    # Note there are spaces between the {} items, so don't forget to
+    # count those spaces for the opening_value line width.
+    print('\nTrades: share acquisitions (positive) and disposals (negative)')
+    print(header_format_string.format(
+        'share code', 'trade date', 'shares', 'price', 'fees', 'foreign value',
+        'currency', 'NZD value'))
+
+    for share in shares:
+        share_cost_of_trades = Decimal('0.00')
+        # consider adding something here to signal if a quick sale
+        # adjustment is needed. For example, initialise some
+        # boolean(s) before processing the trades for each shares
+        for trade in trades:
+            if trade.code == share.code:
+                currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
+                # obviously this needs work
+
+                NZD_value = (trade.charge * currency_FX_rate).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+
+                # This is why there is an outer loop. If a separate
+                # total by share is not needed then the inner loop
+                # would be enough.
+                share_cost_of_trades += NZD_value
+                # consider something here to review signalling of
+                # quick sale adjustment event
+
+                print(trade_format_string.format(
+                    share.code, trade.date, trade.number_of_shares, trade.share_price,
+                    trade.trade_costs, trade.charge, share.currency, NZD_value))
+
+        share.cost_of_trades = share_cost_of_trades
+        # update the quick sale adjustment to something else than None
+        # E.g. use -1 as value to indicate it needs to be calculated
+        total_cost_of_trades += share_cost_of_trades
+
+    print('{:>107}'.format('---------------'))
+    print('{:67}{:>40,.2f}\n'.format('total cost of trades / (proceeds from disposals)',
+        total_cost_of_trades))
+    # cost_of_trades in share instances have been
+    # updated as well. Because shares is a mutable list, this does not
+    # need to be part of the return.
+    return total_cost_of_trades
 
 
 def get_closing_prices(shares):
@@ -352,7 +396,7 @@ def process_closing_prices(shares, closing_prices):
     :return:
     """
     total_closing_value = Decimal('0.00')
-    closing_date = '31 Mar 2018' # revise to get an actual date
+    closing_date = '31 Mar 2018'  # revise to get an actual date
 
     header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
     share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
