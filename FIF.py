@@ -331,6 +331,14 @@ def process_trades(shares, trades):
     :return:
     """
     total_cost_of_trades = Decimal('0.00')
+    any_quick_sale_adjustment = False
+    trades.sort(key = lambda trade: trade.date)
+    # Sorting the trades by date is necessary to work out the need for
+    # a quick sale adjustment, and to properly calculate such an
+    # adjustment later if needed.
+    # The sort is done in place, and trades is a mutable object, so the
+    # sorting should be retained for later use of the trades list
+    # outside this function as well.
 
     header_format_string = '{:15} {:14} {:>12} {:>10} {:>11} {:>15} {:8} {:>15}'
     trade_format_string = '{:15} {:14} {:12,f} {:10,.2f} {:11,.2f} {:15,.2f} {:8} {:15,.2f}'
@@ -343,9 +351,7 @@ def process_trades(shares, trades):
 
     for share in shares:
         share_cost_of_trades = Decimal('0.00')
-        # consider adding something here to signal if a quick sale
-        # adjustment is needed. For example, initialise some
-        # boolean(s) before processing the trades for each shares
+        shares_acquired = False
         for trade in trades:
             if trade.code == share.code:
                 currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
@@ -358,8 +364,17 @@ def process_trades(shares, trades):
                 # total by share is not needed then the inner loop
                 # would be enough.
                 share_cost_of_trades += NZD_value
-                # consider something here to review signalling of
-                # quick sale adjustment event
+
+                if trade.number_of_shares > Decimal('0'):
+                    shares_acquired = True
+                elif shares_acquired and trade.number_of_shares < Decimal('0'):
+                    share.quick_sale_adjustments = True
+                # Here we are enjoying Python's duck typing, changing
+                # value from None to True, in preparation for later
+                # assigning a Decimal value to quick_sale_adjustments.
+                # The test for number_of_shares < 0 may be overkill,
+                # but is there just in case we encounter a bizarre
+                # situation where a trade record would be for 0 shares.
 
                 print(trade_format_string.format(
                     share.code, trade.date, trade.number_of_shares, trade.share_price,
@@ -369,6 +384,8 @@ def process_trades(shares, trades):
         # update the quick sale adjustment to something else than None
         # E.g. use -1 as value to indicate it needs to be calculated
         total_cost_of_trades += share_cost_of_trades
+        if share.quick_sale_adjustments:
+            any_quick_sale_adjustment = True
 
     print('{:>107}'.format('---------------'))
     print('{:67}{:>40,.2f}\n'.format('total cost of trades / (proceeds from disposals)',
@@ -376,7 +393,7 @@ def process_trades(shares, trades):
     # cost_of_trades in share instances have been
     # updated as well. Because shares is a mutable list, this does not
     # need to be part of the return.
-    return total_cost_of_trades
+    return total_cost_of_trades, any_quick_sale_adjustment
 
 
 def get_closing_prices(shares):
@@ -458,12 +475,12 @@ def process_closing_prices(shares, closing_prices):
     return total_closing_value
 
 
-def calc_QSA(shares):
+def calc_QSA(shares, trades, dividends):
     """
 
     :return:
     """
-    quick_sale_adjustments = Decimal(0.00)
+    quick_sale_adjustments = Decimal('0.00')
     return quick_sale_adjustments
 
 
@@ -486,12 +503,16 @@ def main():
     dividends = get_dividends(shares)
     gross_income_from_dividends = process_dividends(shares, dividends)
     trades = get_trades(shares)
-    cost_of_trades = process_trades(shares, trades)
+    cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices)
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
-    # calculate quick sale adjustments
-    quick_sale_adjustments = calc_QSA(shares)
+
+    if any_quick_sale_adjustment:
+        quick_sale_adjustments = calc_QSA(shares, trades, dividends)
+    else:
+        quick_sale_adjustments = Decimal('0.00')
+
     FDR_income = FDR_basic_income + quick_sale_adjustments
     FIF_income = max(0, min(FDR_income, CV_income))
 

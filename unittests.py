@@ -54,7 +54,7 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
         self.assertEqual(self.emb.closing_value, Decimal('0'))
-        self.assertEqual(self.robeco.quick_sale_adjustments, None)
+        self.assertIs(self.robeco.quick_sale_adjustments, None)
 
     def test_re_initialise_with_prior_year_closing_values(self):
         self.someshare.quick_sale_adjustments = 1
@@ -73,7 +73,7 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.emb.opening_holding, Decimal('2000'))
         self.assertEqual(self.emb.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.emb.cost_of_trades, Decimal('0'))
-        self.assertEqual(self.emb.quick_sale_adjustments, None)
+        self.assertIs(self.emb.quick_sale_adjustments, None)
 
     def test_increase_holding(self):
         self.assertEqual(self.someshare.increase_holding('0'), Decimal('0'))
@@ -282,20 +282,24 @@ class TestProcessTrades(unittest.TestCase):
         self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
         self.shares = [self.someshare, self.emb, self.robeco]
         self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
-        self.emb_trade1 = Trade('EMB', '01-02-18', '-1000', '90.99', '4.56')
-        self.emb_trade2 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
-        self.trades = [self.emb_trade1, self.robeco_trade, self.emb_trade2]
+        self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
+        self.emb_trade1 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
+        self.trades = [self.emb_trade2, self.robeco_trade, self.emb_trade1]
         self.result = process_trades(self.shares, self.trades)
 
     def test_return(self):
-        self.assertEqual(type(self.result), Decimal)
-        self.assertEqual(self.result, Decimal('210178.13'))
+        self.assertEqual(type(self.result[0]), Decimal)
+        self.assertEqual(type(self.result[1]), bool)
+        self.assertEqual(self.result[0], Decimal('210178.13'))
+        self.assertIs(self.result[1], True)
 
     def test_share_updates(self):
         self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
         # should not have changed
         self.assertEqual(self.robeco.cost_of_trades, Decimal('1151.23'))
         self.assertEqual(self.emb.cost_of_trades, Decimal('209026.9'))
+        self.assertIs(self.robeco.quick_sale_adjustments, None)
+        self.assertIs(self.emb.quick_sale_adjustments, True)
 
     # test the rest visually for now from output to console generated
     # by test above
