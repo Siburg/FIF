@@ -51,7 +51,7 @@ class TestShare(unittest.TestCase):
     def test_other_initialisations(self):
         self.assertEqual(self.someshare.closing_price, Decimal('0'))
         self.assertEqual(self.emb.opening_value, Decimal('0'))
-        self.assertEqual(self.robeco.net_income_from_dividends, Decimal('0'))
+        self.assertEqual(self.robeco.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
         self.assertEqual(self.emb.closing_value, Decimal('0'))
         self.assertEqual(self.robeco.quick_sale_adjustments, None)
@@ -61,7 +61,7 @@ class TestShare(unittest.TestCase):
         self.emb.closing_price = Decimal('1200')
         self.emb.closing_value = Decimal('2400000')
         self.emb.holding = Decimal('2000')
-        self.emb.net_income_from_dividends = Decimal('1234')
+        self.emb.gross_income_from_dividends = Decimal('1234')
         self.emb.cost_of_trades = Decimal('1100000')
         self.emb.quick_sale_adjustments = Decimal('99')
         self.someshare.re_initialise_with_prior_year_closing_values()
@@ -71,7 +71,7 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.emb.opening_price, Decimal('1200'))
         self.assertEqual(self.emb.opening_value, Decimal('2400000'))
         self.assertEqual(self.emb.opening_holding, Decimal('2000'))
-        self.assertEqual(self.emb.net_income_from_dividends, Decimal('0'))
+        self.assertEqual(self.emb.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.emb.cost_of_trades, Decimal('0'))
         self.assertEqual(self.emb.quick_sale_adjustments, None)
 
@@ -108,6 +108,7 @@ class TestDividend(unittest.TestCase):
             'dividend of 1.23 on 1 Mar 2018 for partial at 10 per share')
 
     def test_eligible_shares(self):
+        self.assertEqual(type(self.emb_div.eligible_shares), Decimal)
         self.assertEqual(self.emb_div.eligible_shares, Decimal('20'))
         self.assertEqual(self.large_div.eligible_shares, Decimal('1000'))
         self.assertEqual(self.partial_div.eligible_shares, Decimal('0.123'))
@@ -158,6 +159,7 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.assertEqual(self.emb.opening_value, Decimal('1100000'))
         self.assertEqual(self.robeco.opening_value, Decimal('137.17'))
 
+    @unittest.skip
     def test_FDR_basic_income_calculations(self):
         pass
         # copy tests from the skipped tests for TestCalcFDRBasic below,
@@ -208,6 +210,40 @@ class TestCalcFDRBasic(unittest.TestCase):
         self.opening_positions = [Share('share5', '0.2', '0.99'), Share('share5', '0.2', '0.99')]
         FDR_basic = calc_FDR_basic(self.opening_positions, '0.05')
         self.assertEqual(FDR_basic, Decimal('0.02'))
+
+
+class TestGetDividends(unittest.TestCase):
+
+    def test_return_type(self):
+        shares = [] # needs to be moved to a proper setup
+        self.assertEqual(type(get_dividends(shares)),list)
+
+
+class TestProcessDividends(unittest.TestCase):
+
+    def setUp(self):
+        self.emb_div = Dividend("EMB", 'feb', '0.023', '0.46')
+        self.large_div = Dividend('EMB', '30-11-2017', '100', '100000')
+        self.partial_div = Dividend('Robeco', '1 Mar 2018', '10', '1.23')
+        self.dividends = [self.large_div, self.partial_div, self.emb_div]
+        self.someshare = Share('some')
+        self.emb = Share('EMB', 'USD', '1100', '1000.')
+        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        self.shares = [self.someshare, self.emb, self.robeco]
+        self.result = process_dividends(self.shares, self.dividends)
+
+    def test_return(self):
+        self.assertEqual(type(self.result), Decimal)
+        self.assertEqual(self.result, Decimal('100001.69'))
+
+    def test_share_updates(self):
+        self.assertEqual(self.someshare.gross_income_from_dividends, Decimal('0'))
+        # should not have changed
+        self.assertEqual(self.robeco.gross_income_from_dividends, Decimal('1.23'))
+        self.assertEqual(self.emb.gross_income_from_dividends, Decimal('100000.46'))
+
+    # test the rest visually for now from output to console generated
+    # by test above
 
 
 class TestGetTrades(unittest.TestCase):
