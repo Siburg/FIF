@@ -23,6 +23,7 @@ such as share splits or share reorganisations.
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
+from operator import attrgetter
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
@@ -332,7 +333,8 @@ def process_trades(shares, trades):
     """
     total_cost_of_trades = Decimal('0.00')
     any_quick_sale_adjustment = False
-    trades.sort(key = lambda trade: trade.date)
+    # trades.sort(key = lambda trade: trade.date)
+    trades.sort(key = attrgetter('date'))   # faster key implementation
     # Sorting the trades by date is necessary to work out the need for
     # a quick sale adjustment, and to properly calculate such an
     # adjustment later if needed.
