@@ -26,6 +26,8 @@ from collections import namedtuple
 from operator import attrgetter
 import csv
 #import json
+from tkinter import filedialog, Tk
+from tkinter.filedialog import askopenfilename, asksaveasfilename
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
@@ -492,15 +494,16 @@ def save_closing_positions(shares):
         print('nothing to save')
         return  # early exit
 
+    Tk().withdraw
+    filename = asksaveasfilename()
     share_dict = vars(shares[0])
     share_fields = share_dict.keys()
-    with open('shares.csv', 'w') as shares_save_file:
+    with open(filename, 'w') as shares_save_file:
         writer = csv.DictWriter(shares_save_file, fieldnames=share_fields)
         writer.writeheader()
         for share in shares:
             share_dict = vars(share)
             writer.writerow(share_dict)
-        shares_save_file.close()
 
     # for share in shares:
     #     json_item = json.dumps(share, default = lambda x: x.__dict__)
