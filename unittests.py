@@ -169,6 +169,7 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
         self.opening_positions = [self.someshare, self.emb, self.robeco]
         self.result = process_opening_positions(self.opening_positions, '0.05')
+        return self.opening_positions
 
     def test_return(self):
         self.assertEqual(type(self.result), tuple)
@@ -247,10 +248,11 @@ class TestProcessDividends(unittest.TestCase):
         self.large_div = Dividend('EMB', '30-11-2017', '100', '100000')
         self.partial_div = Dividend('Robeco', '1 Mar 2018', '10', '1.23')
         self.dividends = [self.large_div, self.partial_div, self.emb_div]
-        self.someshare = Share('some')
-        self.emb = Share('EMB', 'USD', '1100', '1000.')
-        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
-        self.shares = [self.someshare, self.emb, self.robeco]
+        # self.someshare = Share('some')
+        # self.emb = Share('EMB', 'USD', '1100', '1000.')
+        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        # self.shares = [self.someshare, self.emb, self.robeco]
+        self.shares = TestProcessOpeningPositions.setUp(self)
         self.result = process_dividends(self.shares, self.dividends)
 
     def test_return(self):
@@ -277,10 +279,11 @@ class TestGetTrades(unittest.TestCase):
 class TestProcessTrades(unittest.TestCase):
 
     def setUp(self):
-        self.someshare = Share('some')
-        self.emb = Share('EMB', 'USD', '1100', '1000.')
-        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
-        self.shares = [self.someshare, self.emb, self.robeco]
+        # self.someshare = Share('some')
+        # self.emb = Share('EMB', 'USD', '1100', '1000.')
+        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        # self.shares = [self.someshare, self.emb, self.robeco]
+        self.shares = TestProcessOpeningPositions.setUp(self)
         self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
         self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
         self.emb_trade1 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
@@ -308,12 +311,13 @@ class TestProcessTrades(unittest.TestCase):
 class TestProcessClosingPrices(unittest.TestCase):
 
     def setUp(self):
-        self.someshare = Share('some')
-        self.emb = Share('EMB', 'USD', '1100', '1000.')
+        # self.someshare = Share('some')
+        # self.emb = Share('EMB', 'USD', '1100', '1000.')
+        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        # self.shares = [self.someshare, self.emb, self.robeco]
+        self.shares = TestProcessOpeningPositions.setUp(self)
         self.emb.holding = Decimal('2000')
-        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
         self.robeco.holding = Decimal('1.9876')
-        self.shares = [self.someshare, self.emb, self.robeco]
         closing_price_info = namedtuple('closing_price_info', 'code, price')
         embprice = closing_price_info('EMB', '1200.00')
         robecoprice = closing_price_info('Robeco', '122.22')
@@ -340,6 +344,31 @@ class TestProcessClosingPrices(unittest.TestCase):
 
     # test the rest visually for now from output to console generated
     # by test above
+
+
+class TestSaveClosingPositions(unittest.TestCase):
+
+    def setUp(self):
+        self.shares = TestProcessOpeningPositions.setUp(self)
+        self.emb.holding = Decimal('2000')
+        self.robeco.holding = Decimal('1.9876')
+        self.result = save_closing_positions(self.shares)
+
+    def test_return(self):
+        pass
+
+
+@unittest.skip
+class TestMain(unittest.TestCase):
+
+    def setUp(self):
+        result = main()
+
+    def test_main(self):
+        pass
+
+    def test_nothing(self):
+        pass
 
 
 if __name__ == '__main__':

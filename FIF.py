@@ -24,6 +24,8 @@ such as share splits or share reorganisations.
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 from operator import attrgetter
+import csv
+#import json
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
@@ -209,6 +211,9 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
     return: (tuple with)
     total_opening_value: in NZD
     FDR_basic_income: total from calculations (and roundings) per share
+
+    other data changes (to mutable objects in arguments):
+    opening_value for each Share in opening_shares is set.
 
     Code is ignoring currencies for now. An exchange rate of 1 is
     temporarily used for all currencies.
@@ -477,6 +482,32 @@ def process_closing_prices(shares, closing_prices):
     return total_closing_value
 
 
+def save_closing_positions(shares):
+    """
+
+    :param shares:
+    :return:
+    """
+    if len(shares) == 0:
+        print('nothing to save')
+        return  # early exit
+
+    share_dict = vars(shares[0])
+    share_fields = share_dict.keys()
+    with open('shares.csv', 'w') as shares_save_file:
+        writer = csv.DictWriter(shares_save_file, fieldnames=share_fields)
+        writer.writeheader()
+        for share in shares:
+            share_dict = vars(share)
+            writer.writerow(share_dict)
+        shares_save_file.close()
+
+    # for share in shares:
+    #     json_item = json.dumps(share, default = lambda x: x.__dict__)
+    #     print(json_item)
+    return
+
+
 def calc_QSA(shares, trades, dividends):
     """
 
@@ -508,6 +539,7 @@ def main():
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices)
+    save_closing_positions(shares)
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
 
     if any_quick_sale_adjustment:
