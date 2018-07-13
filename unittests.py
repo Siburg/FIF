@@ -241,6 +241,45 @@ class TestCalcFDRBasic(unittest.TestCase):
         self.assertEqual(FDR_basic, Decimal('0.02'))
 
 
+class TestGetTrades(unittest.TestCase):
+
+    def test_return_type(self):
+        shares = [] # needs to be moved to a proper setup
+        self.assertEqual(type(get_trades(shares)),list)
+
+
+class TestProcessTrades(unittest.TestCase):
+
+    def setUp(self):
+        self.shares = TestProcessOpeningPositions.setUp(self)
+        self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
+        self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
+        self.emb_trade1 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
+        self.new_trade = Trade('new','01-10-17', '100', '9.99', '1.00')
+        self.trades = [self.emb_trade2, self.robeco_trade, self.emb_trade1, self.new_trade]
+        self.result = process_trades(self.shares, self.trades)
+
+    def test_return(self):
+        self.assertEqual(type(self.result[0]), Decimal)
+        self.assertEqual(type(self.result[1]), bool)
+        self.assertEqual(self.result[0], Decimal('211178.13'))
+        self.assertIs(self.result[1], True)
+
+    def test_share_updates(self):
+        self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
+        # should not have changed
+        self.assertEqual(self.robeco.cost_of_trades, Decimal('1151.23'))
+        self.assertEqual(self.emb.cost_of_trades, Decimal('209026.9'))
+        self.assertIs(self.robeco.quick_sale_adjustments, None)
+        self.assertIs(self.emb.quick_sale_adjustments, True)
+
+    # need to add a test for creation of new shares as result of trade
+    # purchase of a share that was not part of opening position
+
+    # test the rest visually for now from output to console generated
+    # by test above
+
+
 class TestGetDividends(unittest.TestCase):
 
     def test_return_type(self):
@@ -267,41 +306,6 @@ class TestProcessDividends(unittest.TestCase):
         # should not have changed
         self.assertEqual(self.robeco.gross_income_from_dividends, Decimal('1.23'))
         self.assertEqual(self.emb.gross_income_from_dividends, Decimal('100000.46'))
-
-    # test the rest visually for now from output to console generated
-    # by test above
-
-
-class TestGetTrades(unittest.TestCase):
-
-    def test_return_type(self):
-        shares = [] # needs to be moved to a proper setup
-        self.assertEqual(type(get_trades(shares)),list)
-
-
-class TestProcessTrades(unittest.TestCase):
-
-    def setUp(self):
-        self.shares = TestProcessOpeningPositions.setUp(self)
-        self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
-        self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
-        self.emb_trade1 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
-        self.trades = [self.emb_trade2, self.robeco_trade, self.emb_trade1]
-        self.result = process_trades(self.shares, self.trades)
-
-    def test_return(self):
-        self.assertEqual(type(self.result[0]), Decimal)
-        self.assertEqual(type(self.result[1]), bool)
-        self.assertEqual(self.result[0], Decimal('210178.13'))
-        self.assertIs(self.result[1], True)
-
-    def test_share_updates(self):
-        self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
-        # should not have changed
-        self.assertEqual(self.robeco.cost_of_trades, Decimal('1151.23'))
-        self.assertEqual(self.emb.cost_of_trades, Decimal('209026.9'))
-        self.assertIs(self.robeco.quick_sale_adjustments, None)
-        self.assertIs(self.emb.quick_sale_adjustments, True)
 
     # test the rest visually for now from output to console generated
     # by test above
@@ -341,6 +345,7 @@ class TestProcessClosingPrices(unittest.TestCase):
     # by test above
 
 
+@unittest.skip
 class TestSaveClosingPositions(unittest.TestCase):
 
     def setUp(self):

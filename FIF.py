@@ -128,6 +128,24 @@ class Share:
             self.code, self.holding)
 
 
+class Trade:
+    """
+    add comments
+    """
+    def __init__(self, code, date, number_of_shares, share_price, trade_costs):
+        self.code = code
+        # add functions to parse date into a datetime object
+        self.date = date
+        self.number_of_shares = Decimal(number_of_shares)
+        self.share_price = Decimal(share_price)
+        self.trade_costs = Decimal(trade_costs)
+        self.charge = self.number_of_shares * self.share_price + self.trade_costs
+
+    def __repr__(self):
+        return 'trade for {:,f} shares of {} on {} at {:,.2f} with costs of {:,.2f}'.format(
+               self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
+
+
 class Dividend:
     """
     Holds information on dividens.
@@ -174,24 +192,6 @@ class Dividend:
     def __repr__(self):
         return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
                self.paid, self.date, self.code, self.per_share)
-
-
-class Trade:
-    """
-    add comments
-    """
-    def __init__(self, code, date, number_of_shares, share_price, trade_costs):
-        self.code = code
-        # add functions to parse date into a datetime object
-        self.date = date
-        self.number_of_shares = Decimal(number_of_shares)
-        self.share_price = Decimal(share_price)
-        self.trade_costs = Decimal(trade_costs)
-        self.charge = self.number_of_shares * self.share_price + self.trade_costs
-
-    def __repr__(self):
-        return 'trade for {:,f} shares of {} on {} at {:,.2f} with costs of {:,.2f}'.format(
-               self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
 
 
 def get_opening_positions():
@@ -270,62 +270,6 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
     return total_opening_value, FDR_basic_income
 
 
-def get_dividends(shares):
-    """
-    ADD COMMENTS
-    :return:
-    """
-    dividends = []
-    return dividends
-
-
-def process_dividends(shares, dividends):
-    """
-
-    :param dividends:
-    :return:
-    """
-    total_income_from_dividends = Decimal('0.00')
-
-    header_format_string = '{:15} {:14} {:>12} {:>10} {:>15} {:8} {:>15}'
-    dividend_format_string = '{:15} {:14} {:12,f} {:10,f} {:15,.2f} {:8} {:15,.2f}'
-    # Note there are spaces between the {} items, so don't forget to
-    # count those spaces for the opening_value line width.
-    print('\nDividends')
-    print(header_format_string.format(
-        'share code', 'payment date', 'shares', 'dividend', 'foreign value', 'currency',
-        'NZD value'))
-
-    for share in shares:
-        share_income_from_dividends = Decimal('0.00')
-        for dividend in dividends:
-            if dividend.code == share.code:
-                currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
-                # obviously this needs work
-
-                NZD_value = (dividend.paid * currency_FX_rate).quantize(
-                    Decimal('0.01'), ROUND_HALF_UP)
-
-                # This is why there is an outer loop. If a separate
-                # total by share is not needed then the inner loop
-                # would be enough.
-                share_income_from_dividends += NZD_value
-
-                print(dividend_format_string.format(
-                    share.code, dividend.date, dividend.eligible_shares, dividend.per_share,
-                    dividend.paid, share.currency, NZD_value))
-
-        share.gross_income_from_dividends = share_income_from_dividends
-        total_income_from_dividends += share_income_from_dividends
-
-    print('{:>95}'.format('---------------'))
-    print('{:55}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
-    # gross_income_from_dividends in share instances have been
-    # updated as well. Because shares is a mutable list, this does not
-    # need to be part of the return.
-    return total_income_from_dividends
-
-
 def get_trades(shares):
     """
     ADD COMMENTS
@@ -351,6 +295,35 @@ def process_trades(shares, trades):
     # The sort is done in place, and trades is a mutable object, so the
     # sorting should be retained for later use of the trades list
     # outside this function as well.
+
+    for trade in trades:
+        # check if we already have a matching share code
+        # there may be a more Pythonic solution, but this works for now
+        new_share = True
+        for share in shares:
+            if trade.code == share.code:
+                new_share = False
+                break   # only need to find it once
+
+        if new_share:
+            # do stuff to add a new share
+            print(trade.__repr__() + ' is for a share that is not yet in the system.')
+            currency = input('Enter the currency code in which that share trades (e.g. USD): ')
+            # next line is a temporary fix
+            currency_list = ['USD', 'EUR', 'AUD', 'GBP']
+            while not currency in currency_list:
+                print('The system does not have any information for currency code ' + currency)
+                currency = input('Please enter a valid code for an existing currency')
+
+            full_name = input('Enter the full share name or description for ' +
+                    trade.code + ' : ')
+
+            share = Share(trade.code, full_name, currency)
+            shares.append(share)
+
+    # After this we should have a share instance to match every trade.
+    # For cosmetic output reasons, and probably greater efficiency,
+    # we now process all trades aggregated by share.
 
     header_format_string = '{:15} {:14} {:>12} {:>10} {:>11} {:>15} {:8} {:>15}'
     trade_format_string = '{:15} {:14} {:12,f} {:10,.2f} {:11,.2f} {:15,.2f} {:8} {:15,.2f}'
@@ -406,6 +379,62 @@ def process_trades(shares, trades):
     # updated as well. Because shares is a mutable list, this does not
     # need to be part of the return.
     return total_cost_of_trades, any_quick_sale_adjustment
+
+
+def get_dividends(shares):
+    """
+    ADD COMMENTS
+    :return:
+    """
+    dividends = []
+    return dividends
+
+
+def process_dividends(shares, dividends):
+    """
+
+    :param dividends:
+    :return:
+    """
+    total_income_from_dividends = Decimal('0.00')
+
+    header_format_string = '{:15} {:14} {:>12} {:>10} {:>15} {:8} {:>15}'
+    dividend_format_string = '{:15} {:14} {:12,f} {:10,f} {:15,.2f} {:8} {:15,.2f}'
+    # Note there are spaces between the {} items, so don't forget to
+    # count those spaces for the opening_value line width.
+    print('\nDividends')
+    print(header_format_string.format(
+        'share code', 'payment date', 'shares', 'dividend', 'foreign value', 'currency',
+        'NZD value'))
+
+    for share in shares:
+        share_income_from_dividends = Decimal('0.00')
+        for dividend in dividends:
+            if dividend.code == share.code:
+                currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
+                # obviously this needs work
+
+                NZD_value = (dividend.paid * currency_FX_rate).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+
+                # This is why there is an outer loop. If a separate
+                # total by share is not needed then the inner loop
+                # would be enough.
+                share_income_from_dividends += NZD_value
+
+                print(dividend_format_string.format(
+                    share.code, dividend.date, dividend.eligible_shares, dividend.per_share,
+                    dividend.paid, share.currency, NZD_value))
+
+        share.gross_income_from_dividends = share_income_from_dividends
+        total_income_from_dividends += share_income_from_dividends
+
+    print('{:>95}'.format('---------------'))
+    print('{:55}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
+    # gross_income_from_dividends in share instances have been
+    # updated as well. Because shares is a mutable list, this does not
+    # need to be part of the return.
+    return total_income_from_dividends
 
 
 def get_closing_prices(shares):
@@ -499,14 +528,12 @@ def save_closing_positions(shares):
 
     Tk().withdraw
     filename = asksaveasfilename()
-    share_dict = vars(shares[0])
-    share_fields = share_dict.keys()
+    share_fields = shares[0].__dict__.keys()
     with open(filename, 'w') as shares_save_file:
         writer = csv.DictWriter(shares_save_file, fieldnames=share_fields)
         writer.writeheader()
         for share in shares:
-            share_dict = vars(share)
-            writer.writerow(share_dict)
+            writer.writerow(share.__dict__)
 
     # for share in shares:
     #     json_item = json.dumps(share, default = lambda x: x.__dict__)
@@ -539,10 +566,12 @@ def main():
     shares = get_opening_positions()
     # get exchange rates
     opening_value, FDR_basic_income = process_opening_positions(shares, FAIR_DIVIDEND_RATE)
-    dividends = get_dividends(shares)
-    gross_income_from_dividends = process_dividends(shares, dividends)
+    # Need to process trades first, to get info on shares purchased
+    # during the year, which might receive dividends later.
     trades = get_trades(shares)
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
+    dividends = get_dividends(shares)
+    gross_income_from_dividends = process_dividends(shares, dividends)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices)
     save_closing_positions(shares)
