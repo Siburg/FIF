@@ -160,12 +160,12 @@ class Dividend:
         datetime object.
     per_share: the dividend per share, in its native currency, as
         declared by the issues.
-    paid: the gross sum paid, before any withholding or other taxes,
-        in its native currency, for the dividend.
+    gross_payment: the gross sum paid, before any withholding or other
+        taxes, in its native currency, for the dividend.
 
     Other instance variables that are available:
     eligible_shares: the number of shares for which the dividend was
-        paid; calculated as paid / per_share. Note that this number
+        paid; calculated as gross_payment / per_share. Note that this number
         can be different from the shares held on the payment date,
         because not all of those may have been eligible (yet) for the
         dividend.
@@ -178,20 +178,20 @@ class Dividend:
     The class does not yet hold information on withholding or other
     taxes on dividends. This probably still needs to be added.
     """
-    def __init__(self, code, date, per_share, paid):
+    def __init__(self, code, date, per_share, gross_payment):
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
         self.per_share = Decimal(per_share)
-        self.paid = Decimal(paid)
+        self.gross_payment = Decimal(gross_payment)
         # consider something for tax
-        # Note that self.paid should be gross before tax, or the
+        # Note that self.gross_payment should be gross before tax, or the
         # calculation below will need to be modified for tax effects.
-        self.eligible_shares = self.paid / self.per_share
+        self.eligible_shares = self.gross_payment / self.per_share
 
     def __repr__(self):
         return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
-               self.paid, self.date, self.code, self.per_share)
+               self.gross_payment, self.date, self.code, self.per_share)
 
 
 def get_opening_positions():
@@ -296,6 +296,7 @@ def process_trades(shares, trades):
     # sorting should be retained for later use of the trades list
     # outside this function as well.
 
+    # First, ensure there are share instances for every trade
     for trade in trades:
         # check if we already have a matching share code
         # there may be a more Pythonic solution, but this works for now
@@ -306,18 +307,7 @@ def process_trades(shares, trades):
                 break   # only need to find it once
 
         if new_share:
-            # do stuff to add a new share
-            print(trade.__repr__() + ' is for a share that is not yet in the system.')
-            currency = input('Enter the currency code in which that share trades (e.g. USD): ')
-            # next line is a temporary fix
-            currency_list = ['USD', 'EUR', 'AUD', 'GBP']
-            while not currency in currency_list:
-                print('The system does not have any information for currency code ' + currency)
-                currency = input('Please enter a valid code for an existing currency')
-
-            full_name = input('Enter the full share name or description for ' +
-                    trade.code + ' : ')
-
+            full_name, currency = get_new_share_currency_and_full_name(trade)
             share = Share(trade.code, full_name, currency)
             shares.append(share)
 
@@ -414,7 +404,7 @@ def process_dividends(shares, dividends):
                 currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
                 # obviously this needs work
 
-                NZD_value = (dividend.paid * currency_FX_rate).quantize(
+                NZD_value = (dividend.gross_payment * currency_FX_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
 
                 # This is why there is an outer loop. If a separate
@@ -424,7 +414,7 @@ def process_dividends(shares, dividends):
 
                 print(dividend_format_string.format(
                     share.code, dividend.date, dividend.eligible_shares, dividend.per_share,
-                    dividend.paid, share.currency, NZD_value))
+                    dividend.gross_payment, share.currency, NZD_value))
 
         share.gross_income_from_dividends = share_income_from_dividends
         total_income_from_dividends += share_income_from_dividends
@@ -560,6 +550,30 @@ def FX_rate(currency, date, conversion_method):
     """
     exchange_rate = Decimal('1.0000')
     return exchange_rate
+
+
+def get_new_share_currency_and_full_name(trade):
+    """
+
+    :param trade:
+    :return:
+    """
+
+    prompt = trade.__repr__() + ' is for a share that is not yet in the system.' + \
+             '\nEnter the currency code in which that share trades (e.g. USD): '
+    currency = input(prompt)
+    # Next line is a temporary fix,
+    # currencies may need to be an argument
+    currency_list = ['USD', 'EUR', 'AUD', 'GBP']
+    while not currency in currency_list:
+        print('The system does not have any information for currency code ' + currency)
+        currency = input('Please enter a valid code for an existing currency')
+
+    full_name = input('Enter the full share name or description for ' +
+                      trade.code + ' : ')
+    # Consider adding a while loop to ensure we get a string value.
+    # Also consider if we allow a blank return.
+    return full_name, currency
 
 
 def main():

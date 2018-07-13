@@ -2,7 +2,7 @@
 
 from FIF import *
 import unittest
-# from unittest import mock
+from unittest import mock
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 
@@ -114,7 +114,7 @@ class TestDividend(unittest.TestCase):
 
     def test_variables(self):
         self.assertEqual(self.emb_div.per_share, Decimal('0.023'))
-        self.assertEqual(self.emb_div.paid, Decimal('0.46'))
+        self.assertEqual(self.emb_div.gross_payment, Decimal('0.46'))
 
     def test_eligible_shares(self):
         self.assertEqual(type(self.emb_div.eligible_shares), Decimal)
@@ -255,23 +255,32 @@ class TestProcessTrades(unittest.TestCase):
         self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
         self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
         self.emb_trade1 = Trade('EMB', '01 Mar 18', '3000', '100', '12.34')
-        self.new_trade = Trade('new','01-10-17', '100', '9.99', '1.00')
-        self.trades = [self.emb_trade2, self.robeco_trade, self.emb_trade1, self.new_trade]
-        self.result = process_trades(self.shares, self.trades)
+        self.trades = [self.emb_trade2, self.robeco_trade, self.emb_trade1]
 
     def test_return(self):
-        self.assertEqual(type(self.result[0]), Decimal)
-        self.assertEqual(type(self.result[1]), bool)
-        self.assertEqual(self.result[0], Decimal('211178.13'))
-        self.assertIs(self.result[1], True)
+        result = process_trades(self.shares, self.trades)
+        self.assertEqual(type(result[0]), Decimal)
+        self.assertEqual(type(result[1]), bool)
+        self.assertEqual(result[0], Decimal('210178.13'))
+        self.assertIs(result[1], True)
 
     def test_share_updates(self):
+        self.result = process_trades(self.shares, self.trades)
         self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
         # should not have changed
         self.assertEqual(self.robeco.cost_of_trades, Decimal('1151.23'))
         self.assertEqual(self.emb.cost_of_trades, Decimal('209026.9'))
         self.assertIs(self.robeco.quick_sale_adjustments, None)
         self.assertIs(self.emb.quick_sale_adjustments, True)
+
+    def test_trade_for_new_share(self):
+        new_trade = Trade('new','01-10-17', '100', '9.99', '1.00')
+        self.trades.append(new_trade)
+        with mock.patch('builtins.input', side_effect=['USD', 'new share name']):
+            result = process_trades(self.shares, self.trades)
+        self.assertEqual(result[0], Decimal('211178.13'))
+        self.assertEqual(self.shares[-1].cost_of_trades, Decimal('1000'))
+        self.assertIs(self.shares[-1].quick_sale_adjustments, None)
 
     # need to add a test for creation of new shares as result of trade
     # purchase of a share that was not part of opening position
@@ -356,6 +365,18 @@ class TestSaveClosingPositions(unittest.TestCase):
 
     def test_return(self):
         pass
+
+
+class TestGetNewShareNameAndCurrency(unittest.TestCase):
+
+    def setUp(self):
+        self.new_trade = Trade('new', '01-10-17', '100', '9.99', '1.00')
+
+    def test_number_of_return_values(self):
+        """ check that we get 2 return values for normal input"""
+        with mock.patch('builtins.input', side_effect=['USD', 'share name']):
+            values = get_new_share_currency_and_full_name(self.new_trade)
+        self.assertEqual(len(values), 2)
 
 
 @unittest.skip
