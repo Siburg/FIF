@@ -305,18 +305,11 @@ def process_trades(shares, trades):
 
     # First, ensure there are share instances for every trade
     for trade in trades:
-        # check if we already have a matching share code
-        # there may be a more Pythonic solution, but this works for now
-        new_share = True
-        for share in shares:
-            if trade.code == share.code:
-                new_share = False
-                break   # only need to find it once
-
-        if new_share:
+        # check if we do not have a matching share code
+        if not any(share.code == trade.code for share in shares):
             full_name, currency = get_new_share_currency_and_full_name(trade)
-            share = Share(trade.code, full_name, currency)
-            shares.append(share)
+            new_share = Share(trade.code, full_name, currency)
+            shares.append(new_share)
 
     # After this we should have a share instance to match every trade.
     # For cosmetic output reasons, and probably greater efficiency,
