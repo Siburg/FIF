@@ -45,11 +45,12 @@ class Share:
     holding: current number of shares held, as calculated from other
         inputs.
     closing_price: price per share at end of the tax period.
-    opening_value: to be calculated, and remembered
-    gross_income_from_dividends: to be calculated, and remembered
-    cost_of_trades: to be calculated, and remembered
-    closing_value: to be calculated, and remembered
-    quick_sale_adjustments: to be calculated,  if needed, and remembered
+    opening_value: to be calculated, and remembered.
+    gross_income_from_dividends: to be calculated, and remembered.
+    cost_of_trades: to be calculated, and remembered.
+    closing_value: to be calculated, and remembered.
+    quick_sale_adjustments: to be calculated,  if needed, and
+        remembered.
 
     All numerical values are stored as Decimals. It is strongly
     recommended to pass numerical values for them as strings (or
@@ -61,13 +62,14 @@ class Share:
     the class later into a Share class and a Holding class, or have
     a list of shareholdings over time inside the class.
     """
-    def __init__(self, code, currency='USD', opening_holding='0', opening_price='0.00'):
+    def __init__(self, code, full_name, currency='USD', opening_holding='0', opening_price='0.00'):
         """
         Constructor function with defaults set to zero for numerical
         values. Default for currency is USD. Change that if you wish
         another default currency, e.g. AUD.
         """
         self.code = code
+        self.full_name = full_name
         self.currency = currency
         self.opening_holding = Decimal(opening_holding)
         self.opening_price = Decimal(opening_price)
@@ -76,8 +78,8 @@ class Share:
         # object, but will be used later. They are set up here in
         # preparation and for clarity.
         self.holding = Decimal(opening_holding)
-        # holding is set to opening_holding (after conversion to Decimal)
-        # at initialisation
+        # holding is set to opening_holding (after conversion to
+        # Decimal) at initialisation
         self.closing_price = Decimal('0.00')
         self.opening_value = Decimal('0.00')
         self.gross_income_from_dividends = Decimal('0.00')
@@ -133,14 +135,15 @@ class Dividend:
     another type of object.
 
     Input arguments:
-    code: a code, abbreviation or symbol to identify the share issuer.
+    code: a code, abbreviation or symbol to identify the share.
+    full_name: the full name, or description, for the share.
     date: the payment date for the dividend (not the declaration date
         or other type of date). This should be in the form of a
-        datetime object
+        datetime object.
     per_share: the dividend per share, in its native currency, as
-        declared by the issues
+        declared by the issues.
     paid: the gross sum paid, before any withholding or other taxes,
-        in its native currency, for the dividend
+        in its native currency, for the dividend.
 
     Other instance variables that are available:
     eligible_shares: the number of shares for which the dividend was

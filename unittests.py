@@ -9,9 +9,9 @@ from collections import namedtuple
 
 class TestShare(unittest.TestCase):
     def setUp(self):
-        self.someshare = Share("some")
-        self.emb = Share('EMB', 'USD', '1100', '1000.')
-        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        self.someshare = Share('some', 'some share')
+        self.emb = Share('EMB', 'Emerging Market Bonds', 'USD', '1100', '1000.')
+        self.robeco = Share('Robeco', 'Robeco Emerging Stars', 'EUR', '1.2345', '111.11')
 
     def test_existence(self):
         self.assertIsInstance(self.someshare, Share)
@@ -22,6 +22,11 @@ class TestShare(unittest.TestCase):
         """test share name"""
         self.assertEqual(self.someshare.code, 'some')
         self.assertEqual(self.robeco.code, 'Robeco')
+
+    def test_full_name(self):
+        """test share name"""
+        self.assertEqual(self.someshare.full_name, 'some share')
+        self.assertEqual(self.robeco.full_name, 'Robeco Emerging Stars')
 
     def test_currency(self):
         self.assertAlmostEqual(self.someshare.currency, 'USD')
@@ -151,6 +156,7 @@ class TestGetOpeningPositions(unittest.TestCase):
         # self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
         # self.emb = Share('EMB', '11', '100.', '110.')
         # self.opening_positions = [self.robeco, self.emb]
+        # need to add full_name if we uncomment above
         pass
 
     def test_return_type(self):
@@ -164,9 +170,9 @@ class TestGetOpeningPositions(unittest.TestCase):
 class TestProcessOpeningPositions(unittest.TestCase):
 
     def setUp(self):
-        self.someshare = Share('some')
-        self.emb = Share('EMB', 'USD', '1100', '1000.')
-        self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
+        self.someshare = Share('some', 'some share')
+        self.emb = Share('EMB', 'Emerging Markets Bonds', 'USD', '1100', '1000.')
+        self.robeco = Share('Robeco', 'Robeco Emerging Stars', 'EUR', '1.2345', '111.11')
         self.opening_positions = [self.someshare, self.emb, self.robeco]
         self.result = process_opening_positions(self.opening_positions, '0.05')
         return self.opening_positions
@@ -193,6 +199,7 @@ class TestProcessOpeningPositions(unittest.TestCase):
 
 
 @unittest.skip  #need to revise this after integrating it with previous function
+# also need to add full_name to all share instantiations if it is integrated
 class TestCalcFDRBasic(unittest.TestCase):
 
     def test_single_share(self):
@@ -248,10 +255,6 @@ class TestProcessDividends(unittest.TestCase):
         self.large_div = Dividend('EMB', '30-11-2017', '100', '100000')
         self.partial_div = Dividend('Robeco', '1 Mar 2018', '10', '1.23')
         self.dividends = [self.large_div, self.partial_div, self.emb_div]
-        # self.someshare = Share('some')
-        # self.emb = Share('EMB', 'USD', '1100', '1000.')
-        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
-        # self.shares = [self.someshare, self.emb, self.robeco]
         self.shares = TestProcessOpeningPositions.setUp(self)
         self.result = process_dividends(self.shares, self.dividends)
 
@@ -279,10 +282,6 @@ class TestGetTrades(unittest.TestCase):
 class TestProcessTrades(unittest.TestCase):
 
     def setUp(self):
-        # self.someshare = Share('some')
-        # self.emb = Share('EMB', 'USD', '1100', '1000.')
-        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
-        # self.shares = [self.someshare, self.emb, self.robeco]
         self.shares = TestProcessOpeningPositions.setUp(self)
         self.robeco_trade = Trade('Robeco', "jan", '10', '115', '1.23')
         self.emb_trade2 = Trade('EMB', '02 Mar 18', '-1000', '90.99', '4.56')
@@ -311,10 +310,6 @@ class TestProcessTrades(unittest.TestCase):
 class TestProcessClosingPrices(unittest.TestCase):
 
     def setUp(self):
-        # self.someshare = Share('some')
-        # self.emb = Share('EMB', 'USD', '1100', '1000.')
-        # self.robeco = Share('Robeco', 'EUR', '1.2345', '111.11')
-        # self.shares = [self.someshare, self.emb, self.robeco]
         self.shares = TestProcessOpeningPositions.setUp(self)
         self.emb.holding = Decimal('2000')
         self.robeco.holding = Decimal('1.9876')
