@@ -240,6 +240,8 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
     print(header_format_string.format(
         'share code', 'name / description', 'price', 'shares held', 'foreign value', 'currency',
         'NZD value'))
+    print(107 * '-')
+
 
     for share in opening_shares:
         foreign_value = (share.opening_holding * share.opening_price).quantize(
@@ -328,6 +330,8 @@ def process_trades(shares, trades):
     print(header_format_string.format(
         'share code', 'trade date', 'fees', 'price', 'shares', 'foreign value',
         'currency', 'NZD value'))
+    print(107 * '-')
+
 
     for share in shares:
         share_cost_of_trades = Decimal('0.00')
@@ -401,6 +405,7 @@ def process_dividends(shares, dividends):
     print(header_format_string.format(
         'share code', 'payment date', 'gross dividend', 'shares', 'foreign value', 'currency',
         'NZD value'))
+    print(107 * '-')
 
     for share in shares:
         share_income_from_dividends = Decimal('0.00')
@@ -425,7 +430,8 @@ def process_dividends(shares, dividends):
         total_income_from_dividends += share_income_from_dividends
 
     print('{:>107}'.format('---------------'))
-    print('{:67}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
+    print('{:67}{:>40,.2f}\n'.format('total gross income (before tax deductions) from dividends',
+            total_income_from_dividends))
     # gross_income_from_dividends in share instances have been
     # updated as well. Because shares is a mutable list, this does not
     # need to be part of the return.
@@ -460,6 +466,7 @@ def process_closing_prices(shares, closing_prices):
     print(header_format_string.format(
         'share code', 'name / description', 'price', 'shares held', 'foreign value',
         'currency', 'NZD value'))
+    print(107 * '-')
 
     for closing_price_info in closing_prices:
         # assume that we did indeed obtain a closing price for every
