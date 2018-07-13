@@ -77,7 +77,7 @@ class Share:
         # Variables below are not immediately needed when creating the
         # object, but will be used later. They are set up here in
         # preparation and for clarity.
-        self.holding = Decimal(opening_holding)
+        self.holding = self.opening_holding
         # holding is set to opening_holding (after conversion to
         # Decimal) at initialisation
         self.closing_price = Decimal('0.00')
@@ -176,7 +176,9 @@ class Dividend:
     converted to Decimals.
 
     The class does not yet hold information on withholding or other
-    taxes on dividends. This probably still needs to be added.
+    taxes on dividends. This probably still needs to be added, but may
+    be tricky because dates for tax paid may not match up with dates
+    for dividends paid.
     """
     def __init__(self, code, date, per_share, gross_paid):
         self.code = code
@@ -222,9 +224,6 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
 
     Code is ignoring currencies for now. An exchange rate of 1 is
     temporarily used for all currencies.
-    header_format_string = '{:15} {:14} {:>23} {:>12} {:>15} {:8} {:>15}'
-    dividend_format_string = '{:15} {:14} {:23,f} {:12,f} {:15,.2f} {:8} {:15,.2f}'
-
     """
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
@@ -241,7 +240,6 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
         'share code', 'name / description', 'price', 'shares held', 'foreign value', 'currency',
         'NZD value'))
     print(107 * '-')
-
 
     for share in opening_shares:
         foreign_value = (share.opening_holding * share.opening_price).quantize(
@@ -325,37 +323,37 @@ def process_trades(shares, trades):
         'currency', 'NZD value'))
     print(107 * '-')
 
-
     for share in shares:
         share_cost_of_trades = Decimal('0.00')
         shares_acquired = False
-        for trade in trades:
-            if trade.code == share.code:
-                currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
-                # obviously this needs work
+        for trade in filter(lambda trade: trade.code == share.code, trades):
+        # for trade in trades:
+        #     if trade.code == share.code:
+            currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
+            # obviously this needs work
 
-                NZD_value = (trade.charge * currency_FX_rate).quantize(
-                    Decimal('0.01'), ROUND_HALF_UP)
+            NZD_value = (trade.charge * currency_FX_rate).quantize(
+                Decimal('0.01'), ROUND_HALF_UP)
 
-                # This is why there is an outer loop. If a separate
-                # total by share is not needed then the inner loop
-                # would be enough.
-                share_cost_of_trades += NZD_value
+            # This is why there is an outer loop. If a separate
+            # total by share is not needed then the inner loop
+            # would be enough.
+            share_cost_of_trades += NZD_value
 
-                if trade.number_of_shares > Decimal('0'):
-                    shares_acquired = True
-                elif shares_acquired and trade.number_of_shares < Decimal('0'):
-                    share.quick_sale_adjustments = True
-                # Here we are enjoying Python's duck typing, changing
-                # value from None to True, in preparation for later
-                # assigning a Decimal value to quick_sale_adjustments.
-                # The test for number_of_shares < 0 may be overkill,
-                # but is there just in case we encounter a bizarre
-                # situation where a trade record would be for 0 shares.
+            if trade.number_of_shares > Decimal('0'):
+                shares_acquired = True
+            elif shares_acquired and trade.number_of_shares < Decimal('0'):
+                share.quick_sale_adjustments = True
+            # Here we are enjoying Python's duck typing, changing
+            # value from None to True, in preparation for later
+            # assigning a Decimal value to quick_sale_adjustments.
+            # The test for number_of_shares < 0 may be overkill,
+            # but is there just in case we encounter a bizarre
+            # situation where a trade record would be for 0 shares.
 
-                print(trade_format_string.format(
-                    share.code, trade.date, trade.trade_costs, trade.share_price,
-                    trade.number_of_shares, trade.charge, share.currency, NZD_value))
+            print(trade_format_string.format(
+                share.code, trade.date, trade.trade_costs, trade.share_price,
+                trade.number_of_shares, trade.charge, share.currency, NZD_value))
 
         share.cost_of_trades = share_cost_of_trades
         # update the quick sale adjustment to something else than None
@@ -402,22 +400,23 @@ def process_dividends(shares, dividends):
 
     for share in shares:
         share_income_from_dividends = Decimal('0.00')
-        for dividend in dividends:
-            if dividend.code == share.code:
-                currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
-                # obviously this needs work
+        for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
+        # for dividend in dividends:
+        #     if dividend.code == share.code:
+            currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
+            # obviously this needs work
 
-                NZD_value = (dividend.gross_paid * currency_FX_rate).quantize(
-                    Decimal('0.01'), ROUND_HALF_UP)
+            NZD_value = (dividend.gross_paid * currency_FX_rate).quantize(
+                Decimal('0.01'), ROUND_HALF_UP)
 
-                # This is why there is an outer loop. If a separate
-                # total by share is not needed then the inner loop
-                # would be enough.
-                share_income_from_dividends += NZD_value
+            # This is why there is an outer loop. If a separate
+            # total by share is not needed then the inner loop
+            # would be enough.
+            share_income_from_dividends += NZD_value
 
-                print(dividend_format_string.format(
-                    share.code, dividend.date, dividend.per_share,
-                    dividend.eligible_shares, dividend.gross_paid, share.currency, NZD_value))
+            print(dividend_format_string.format(
+                share.code, dividend.date, dividend.per_share,
+                dividend.eligible_shares, dividend.gross_paid, share.currency, NZD_value))
 
         share.gross_income_from_dividends = share_income_from_dividends
         total_income_from_dividends += share_income_from_dividends
@@ -566,13 +565,14 @@ def get_new_share_currency_and_full_name(trade):
     :return:
     """
 
-    prompt = trade.__repr__() + ' is for a share that is not yet in the system.' + \
-             '\nEnter the currency code in which that share trades (e.g. USD): '
+    prompt = ('{0} is for a share that is not yet in the system.\n' +
+              'Enter the currency code in which that share trades (e.g. USD): ').format(
+        repr(trade))
     currency = input(prompt)
     # Next line is a temporary fix,
     # currencies may need to be an argument
     currency_list = ['USD', 'EUR', 'AUD', 'GBP']
-    while not currency in currency_list:
+    while currency not in currency_list:
         print('The system does not have any information for currency code ' + currency)
         currency = input('Please enter a valid code for an existing currency')
 

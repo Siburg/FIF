@@ -372,11 +372,20 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
     def setUp(self):
         self.new_trade = Trade('new', '01-10-17', '100', '9.99', '1.00')
 
-    def test_number_of_return_values(self):
+    def test_return_values(self):
         """ check that we get 2 return values for normal input"""
         with mock.patch('builtins.input', side_effect=['USD', 'share name']):
             values = get_new_share_currency_and_full_name(self.new_trade)
+        self.assertIs(type(values), tuple)
         self.assertEqual(len(values), 2)
+        self.assertEqual(values[0], 'share name')
+        self.assertEqual(values[1], 'USD')
+
+    def test_invalid_currency_rejection(self):
+        with mock.patch('builtins.input', side_effect=['usd', 'USD', 'share name']):
+            values = get_new_share_currency_and_full_name(self.new_trade)
+        self.assertEqual(values[0], 'share name')
+        self.assertEqual(values[1], 'USD')
 
 
 @unittest.skip
