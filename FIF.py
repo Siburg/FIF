@@ -6,7 +6,7 @@ using the Fair Dividend Rate (FDR) method and the Comparative Value
 result for FIF income.
 
 Note that some tax payers may use other methods as well or instead.
-Such other methods are not covered by this program.
+Such other methods are not covered by this program.gr
 
 by Jelle Sjoerdsma
 July 2018
@@ -160,15 +160,15 @@ class Dividend:
         datetime object.
     per_share: the dividend per share, in its native currency, as
         declared by the issues.
-    gross_payment: the gross sum paid, before any withholding or other
+    gross_paid: the gross sum paid, before any withholding or other
         taxes, in its native currency, for the dividend.
 
     Other instance variables that are available:
     eligible_shares: the number of shares for which the dividend was
-        paid; calculated as gross_payment / per_share. Note that this number
-        can be different from the shares held on the payment date,
-        because not all of those may have been eligible (yet) for the
-        dividend.
+        paid; calculated as gross_paid / per_share. Note that this
+        can be different from the number of shares held on the payment
+        date, because not all of those may have been eligible (yet) for
+        the dividend.
 
     All numerical values are stored as Decimals. It is strongly
     recommended to pass numerical values for them as strings (or
@@ -178,20 +178,20 @@ class Dividend:
     The class does not yet hold information on withholding or other
     taxes on dividends. This probably still needs to be added.
     """
-    def __init__(self, code, date, per_share, gross_payment):
+    def __init__(self, code, date, per_share, gross_paid):
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
         self.per_share = Decimal(per_share)
-        self.gross_payment = Decimal(gross_payment)
+        self.gross_paid = Decimal(gross_paid)
         # consider something for tax
-        # Note that self.gross_payment should be gross before tax, or the
+        # Note that self.gross_paid should be gross before tax, or the
         # calculation below will need to be modified for tax effects.
-        self.eligible_shares = self.gross_payment / self.per_share
+        self.eligible_shares = self.gross_paid / self.per_share
 
     def __repr__(self):
         return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
-               self.gross_payment, self.date, self.code, self.per_share)
+               self.gross_paid, self.date, self.code, self.per_share)
 
 
 def get_opening_positions():
@@ -222,20 +222,24 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
 
     Code is ignoring currencies for now. An exchange rate of 1 is
     temporarily used for all currencies.
+    header_format_string = '{:15} {:14} {:>23} {:>12} {:>15} {:8} {:>15}'
+    dividend_format_string = '{:15} {:14} {:23,f} {:12,f} {:15,.2f} {:8} {:15,.2f}'
+
     """
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
     # Need to do something better for setting date below
     previous_closing_date = '31 Mar 2017'
 
-    header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
-    share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
+    header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:8} {:>15}'
+    share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:8} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nOpening positions, based on previous closing positions for {}'.format(
         previous_closing_date))
     print(header_format_string.format(
-        'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
+        'share code', 'name / description', 'price', 'shares held', 'foreign value', 'currency',
+        'NZD value'))
 
     for share in opening_shares:
         foreign_value = (share.opening_holding * share.opening_price).quantize(
@@ -262,11 +266,12 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
         # multiplying eachshare with the fair_dividend_rate.
 
         print(share_format_string.format(
-            share.code, share.opening_holding, share.opening_price, foreign_value, share.currency,
+            share.code, share.full_name, share.opening_price, share.opening_holding, foreign_value,
+            share.currency,
             NZD_value))
 
-    print('{:>80}'.format('---------------'))
-    print('{:40}{:>40,.2f}\n'.format('total opening value', total_opening_value))
+    print('{:>107}'.format('---------------'))
+    print('{:67}{:>40,.2f}\n'.format('total opening value', total_opening_value))
     return total_opening_value, FDR_basic_income
 
 
@@ -315,13 +320,13 @@ def process_trades(shares, trades):
     # For cosmetic output reasons, and probably greater efficiency,
     # we now process all trades aggregated by share.
 
-    header_format_string = '{:15} {:14} {:>12} {:>10} {:>11} {:>15} {:8} {:>15}'
-    trade_format_string = '{:15} {:14} {:12,f} {:10,.2f} {:11,.2f} {:15,.2f} {:8} {:15,.2f}'
+    header_format_string = '{:15} {:14} {:>11} {:>10} {:>12} {:>15} {:8} {:>15}'
+    trade_format_string = '{:15} {:14} {:11,.2f} {:10,.2f} {:12,f} {:15,.2f} {:8} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
     print(header_format_string.format(
-        'share code', 'trade date', 'shares', 'price', 'fees', 'foreign value',
+        'share code', 'trade date', 'fees', 'price', 'shares', 'foreign value',
         'currency', 'NZD value'))
 
     for share in shares:
@@ -352,8 +357,8 @@ def process_trades(shares, trades):
                 # situation where a trade record would be for 0 shares.
 
                 print(trade_format_string.format(
-                    share.code, trade.date, trade.number_of_shares, trade.share_price,
-                    trade.trade_costs, trade.charge, share.currency, NZD_value))
+                    share.code, trade.date, trade.trade_costs, trade.share_price,
+                    trade.number_of_shares, trade.charge, share.currency, NZD_value))
 
         share.cost_of_trades = share_cost_of_trades
         # update the quick sale adjustment to something else than None
@@ -388,13 +393,13 @@ def process_dividends(shares, dividends):
     """
     total_income_from_dividends = Decimal('0.00')
 
-    header_format_string = '{:15} {:14} {:>12} {:>10} {:>15} {:8} {:>15}'
-    dividend_format_string = '{:15} {:14} {:12,f} {:10,f} {:15,.2f} {:8} {:15,.2f}'
+    header_format_string = '{:15} {:14} {:>22} {:>12} {:>15} {:8} {:>15}'
+    dividend_format_string = '{:15} {:14} {:22,f} {:12,f} {:15,.2f} {:8} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nDividends')
     print(header_format_string.format(
-        'share code', 'payment date', 'shares', 'dividend', 'foreign value', 'currency',
+        'share code', 'payment date', 'gross dividend', 'shares', 'foreign value', 'currency',
         'NZD value'))
 
     for share in shares:
@@ -404,7 +409,7 @@ def process_dividends(shares, dividends):
                 currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
                 # obviously this needs work
 
-                NZD_value = (dividend.gross_payment * currency_FX_rate).quantize(
+                NZD_value = (dividend.gross_paid * currency_FX_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
 
                 # This is why there is an outer loop. If a separate
@@ -413,14 +418,14 @@ def process_dividends(shares, dividends):
                 share_income_from_dividends += NZD_value
 
                 print(dividend_format_string.format(
-                    share.code, dividend.date, dividend.eligible_shares, dividend.per_share,
-                    dividend.gross_payment, share.currency, NZD_value))
+                    share.code, dividend.date, dividend.per_share,
+                    dividend.eligible_shares, dividend.gross_paid, share.currency, NZD_value))
 
         share.gross_income_from_dividends = share_income_from_dividends
         total_income_from_dividends += share_income_from_dividends
 
-    print('{:>95}'.format('---------------'))
-    print('{:55}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
+    print('{:>107}'.format('---------------'))
+    print('{:67}{:>40,.2f}\n'.format('total income from dividends', total_income_from_dividends))
     # gross_income_from_dividends in share instances have been
     # updated as well. Because shares is a mutable list, this does not
     # need to be part of the return.
@@ -442,17 +447,19 @@ def process_closing_prices(shares, closing_prices):
 
     :param shares:
     :return:
+
     """
     total_closing_value = Decimal('0.00')
     closing_date = '31 Mar 2018'  # revise to get an actual date
 
-    header_format_string = '{:15} {:>12} {:>10} {:>15} {:8} {:>15}'
-    share_format_string = '{:15} {:12,} {:10,.2f} {:15,.2f} {:8} {:15,.2f}'
+    header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:8} {:>15}'
+    share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:8} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nClosing positions for {}'.format(closing_date))
     print(header_format_string.format(
-        'share code', 'shares held', 'price', 'foreign value', 'currency', 'NZD value'))
+        'share code', 'name / description', 'price', 'shares held', 'foreign value',
+        'currency', 'NZD value'))
 
     for closing_price_info in closing_prices:
         # assume that we did indeed obtain a closing price for every
@@ -480,7 +487,7 @@ def process_closing_prices(shares, closing_prices):
                 total_closing_value += NZD_value
 
                 print(share_format_string.format(
-                    share.code, share.holding, share.closing_price, foreign_value,
+                    share.code, share.full_name, share.closing_price, share.holding, foreign_value,
                     share.currency, NZD_value))
 
                 # no need to continue inner loop after having the share
@@ -494,11 +501,11 @@ def process_closing_prices(shares, closing_prices):
     for share in shares:
         if share.closing_price == Decimal(0) or share.holding == Decimal(0):
             print(share_format_string.format(
-                share.code, share.holding, share.closing_price, 0,
+                share.code, share.full_name, share.closing_price, share.holding, 0,
                 share.currency, 0))
 
-    print('{:>80}'.format('---------------'))
-    print('{:40}{:>40,.2f}\n'.format('total closing value', total_closing_value))
+    print('{:>107}'.format('---------------'))
+    print('{:67}{:>40,.2f}\n'.format('total closing value', total_closing_value))
 
     # closing_price and closing_value in share instances have been
     # updated as well. Because shares is a mutable list, this does not

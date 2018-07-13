@@ -114,7 +114,7 @@ class TestDividend(unittest.TestCase):
 
     def test_variables(self):
         self.assertEqual(self.emb_div.per_share, Decimal('0.023'))
-        self.assertEqual(self.emb_div.gross_payment, Decimal('0.46'))
+        self.assertEqual(self.emb_div.gross_paid, Decimal('0.46'))
 
     def test_eligible_shares(self):
         self.assertEqual(type(self.emb_div.eligible_shares), Decimal)
