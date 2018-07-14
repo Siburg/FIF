@@ -57,8 +57,10 @@ class Share:
     already in the form of Decimals), so they can be accurately
     converted to Decimals.
 
-    The full share name or description is not currently a variable in
-    this class. Consider it for addition later. Also consider splitting
+    THINK IF WE NEED A DATE, OR AT LEAST A YEAR INDICATOR for the
+    shareholding
+
+    Consider splitting
     the class later into a Share class and a Holding class, or have
     a list of shareholdings over time inside the class.
     """
@@ -80,6 +82,7 @@ class Share:
         self.holding = self.opening_holding
         # holding is set to opening_holding (after conversion to
         # Decimal) at initialisation
+        # STILL NEED TO THINK IF THIS RIGHT APPROACH
         self.closing_price = Decimal('0.00')
         self.opening_value = Decimal('0.00')
         self.gross_income_from_dividends = Decimal('0.00')
@@ -97,16 +100,18 @@ class Share:
         Nothing happens if closing_value is not positive, on the
         assumption that this means the share has been re-initialised
         already, or is not a valid prior year share.
+        THINK MORE ABOUT THIS ASSUMPTION
+        could be wrong if share is bought and sold during a year
         """
-        if self.closing_value > 0:
-            self.opening_holding = self.holding
-            self.opening_price = self.closing_price
-            self.opening_value = self.closing_value
-            self.closing_price = Decimal('0.00')
-            self.gross_income_from_dividends = Decimal('0.00')
-            self.cost_of_trades = Decimal('0.00')
-            self.closing_value = Decimal('0.00')
-            self.quick_sale_adjustments = None  # most shares won't need it
+        # if Decimal(self.closing_value) > Decimal(0):
+        self.opening_holding = Decimal(self.holding)
+        self.opening_price = Decimal(self.closing_price)
+        self.opening_value = Decimal(self.closing_value)
+        self.closing_price = Decimal('0.00')
+        self.gross_income_from_dividends = Decimal('0.00')
+        self.cost_of_trades = Decimal('0.00')
+        self.closing_value = Decimal('0.00')
+        self.quick_sale_adjustments = None  # most shares won't need it
         return
 
     def increase_holding(self, increase):
@@ -198,6 +203,19 @@ class Dividend:
 
 def get_opening_positions():
     opening_positions = []
+    Tk().withdraw
+    filename = askopenfilename()
+    with open(filename, newline='') as shares_file:
+        reader = csv.DictReader(shares_file)
+        for row in reader:
+            opening_share = Share('dummy code', 'dummy name')
+            for key, value in row.items():
+                opening_share.__dict__[key] = str(value)
+#            opening_share.__dict__.update(row)
+            opening_share.re_initialise_with_prior_year_closing_values()
+            print(opening_share.__dict__)
+            opening_positions.append(opening_share)
+
     return opening_positions
 
 
@@ -461,8 +479,11 @@ def process_closing_prices(shares, closing_prices):
     print(107 * '-')
 
     for closing_price_info in closing_prices:
-        # assume that we did indeed obtain a closing price for every
-        # share with a closing holding > 0
+        # Assume that we did indeed obtain a closing price for every
+        # share with a closing holding > 0.
+        # Don't use filter function here because there is only one
+        # share per closing price so we can break out of the inner loop
+        # as soon as we find it.
         for share in shares:
             # assume the lists are not sorted by share code
             if share.code == closing_price_info.code:
@@ -489,10 +510,7 @@ def process_closing_prices(shares, closing_prices):
                     share.code, share.full_name, share.closing_price, share.holding, foreign_value,
                     share.currency, NZD_value))
 
-                # no need to continue inner loop after having the share
-                # matching the closing_price_info.code. There is only
-                # one closing price per share.
-                break
+                break   # the inner loop after matching share is found
 
     # Also print shares that do not have a closing price or value.
     # This could risk double printing if a zero price is included in
@@ -525,7 +543,7 @@ def save_closing_positions(shares):
     Tk().withdraw
     filename = asksaveasfilename()
     share_fields = shares[0].__dict__.keys()
-    with open(filename, 'w') as shares_save_file:
+    with open(filename, 'w', newline='') as shares_save_file:
         writer = csv.DictWriter(shares_save_file, fieldnames=share_fields)
         writer.writeheader()
         for share in shares:
