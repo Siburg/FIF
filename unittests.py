@@ -160,7 +160,7 @@ class TestGetOpeningPositions(unittest.TestCase):
         pass
 
     def test_return_type(self):
-        self.assertEqual(type(get_opening_positions()),list)
+        self.assertEqual(type(get_opening_positions(2016)),list)
 
     # def test_list_length(self):
     #     openings = get_opening_positions()
@@ -174,7 +174,7 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.emb = Share('EMB', 'Emerging Markets Bonds', 'USD', '1100', '1000.')
         self.robeco = Share('Robeco', 'Robeco Emerging Stars', 'EUR', '1.2345', '111.11')
         self.opening_positions = [self.someshare, self.emb, self.robeco]
-        self.result = process_opening_positions(self.opening_positions, '0.05')
+        self.result = process_opening_positions(self.opening_positions, '0.05', 2015)
         return self.opening_positions
 
     def test_return(self):
@@ -388,7 +388,7 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
         self.assertEqual(values[1], 'USD')
 
 
-@unittest.skip
+#@unittest.skip
 class TestMain(unittest.TestCase):
 
     def setUp(self):

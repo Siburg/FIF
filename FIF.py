@@ -28,6 +28,7 @@ import csv
 #import json
 from tkinter import filedialog, Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
+import sys
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 
@@ -64,7 +65,8 @@ class Share:
     the class later into a Share class and a Holding class, or have
     a list of shareholdings over time inside the class.
     """
-    def __init__(self, code, full_name, currency='USD', opening_holding='0', opening_price='0.00'):
+    def __init__(self, code, full_name='', currency='USD', opening_holding='0',
+                 opening_price='0.00'):
         """
         Constructor function with defaults set to zero for numerical
         values. Default for currency is USD. Change that if you wish
@@ -201,14 +203,60 @@ class Dividend:
                self.gross_paid, self.date, self.code, self.per_share)
 
 
-def get_opening_positions():
+class IntegerError(Exception):
+    pass
+
+class TooEarlyError(Exception):
+    pass
+
+class TooLateError(Exception):
+    pass
+
+def get_tax_year():
+    """
+
+    :return:
+    """
+    prompt = 'Enter the year in which the income tax period ends: '
+    again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
+    while True:
+        try:
+            input_year = input(prompt)
+            if input_year == 'quit':
+                print('Program is now exiting')
+                sys.exit()
+                # This is a hard exit. No need to do anything more.
+
+            if not input_year.isdigit():
+                raise IntegerError
+            tax_year = int(input_year)
+            if tax_year < 2008:
+                raise TooEarlyError
+            if tax_year > 2100:
+                raise TooLateError
+            break   # out of the while loop
+
+        except ValueError:
+            prompt = 'That is not a valid entry.' + again
+        except IntegerError:
+            prompt = 'Entry needs to be a whole number.' + again
+        except TooEarlyError:
+            prompt = 'Calculations do not apply for tax years ending earlier than 31 Mar 2008' \
+                + again
+        except TooLateError:
+            prompt = 'That seems an implausably late year.' + again
+
+    return tax_year
+
+
+def get_opening_positions(tax_year):
     opening_positions = []
     Tk().withdraw
     filename = askopenfilename()
     with open(filename, newline='') as shares_file:
         reader = csv.DictReader(shares_file)
         for row in reader:
-            opening_share = Share('dummy code', 'dummy name')
+            opening_share = Share('dummy code')
             for key, value in row.items():
                 opening_share.__dict__[key] = str(value)
 #            opening_share.__dict__.update(row)
@@ -219,7 +267,7 @@ def get_opening_positions():
     return opening_positions
 
 
-def process_opening_positions(opening_shares, fair_dividend_rate):
+def process_opening_positions(opening_shares, fair_dividend_rate, tax_year):
     """
     Calculates NZD value of each share held at opening, sets that value
     for the share, and calculates total NZD value across shares. Also
@@ -246,7 +294,7 @@ def process_opening_positions(opening_shares, fair_dividend_rate):
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
     # Need to do something better for setting date below
-    previous_closing_date = '31 Mar 2017'
+    previous_closing_date = '31 Mar ' + str(tax_year - 1)
 
     header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:8} {:>15}'
     share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:8} {:15,.2f}'
@@ -347,6 +395,9 @@ def process_trades(shares, trades):
         for trade in filter(lambda trade: trade.code == share.code, trades):
         # for trade in trades:
         #     if trade.code == share.code:
+
+            share.increase_holding(trade.number_of_shares)
+
             currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
             # obviously this needs work
 
@@ -602,9 +653,11 @@ def get_new_share_currency_and_full_name(trade):
 
 
 def main():
-    shares = get_opening_positions()
+    tax_year = get_tax_year()
+    shares = get_opening_positions(tax_year)
     # get exchange rates
-    opening_value, FDR_basic_income = process_opening_positions(shares, FAIR_DIVIDEND_RATE)
+    opening_value, FDR_basic_income = process_opening_positions(
+        shares, FAIR_DIVIDEND_RATE, tax_year)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
     trades = get_trades(shares)
