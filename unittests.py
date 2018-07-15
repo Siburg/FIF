@@ -332,7 +332,7 @@ class TestProcessClosingPrices(unittest.TestCase):
         dummyprice = closing_price_info('dummy', '99')
         self.closing_prices = [robecoprice, dummyprice, embprice]
         # closing_price order mixed up
-        self.result = process_closing_prices(self.shares, self.closing_prices)
+        self.result = process_closing_prices(self.shares, self.closing_prices, 2016)
 
     def test_return(self):
         self.assertEqual(type(self.result), Decimal)

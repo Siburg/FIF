@@ -252,8 +252,8 @@ def get_tax_year():
 
 def get_opening_positions(tax_year):
     opening_positions = []
-    Tk().withdraw
     filename = askopenfilename()
+    Tk().withdraw
     with open(filename, newline='') as shares_file:
         reader = csv.DictReader(shares_file)
         for row in reader:
@@ -500,7 +500,7 @@ def process_dividends(shares, dividends):
     return total_income_from_dividends
 
 
-def get_closing_prices(shares):
+def get_closing_prices(shares, tax_year):
     """
 
     :return:
@@ -510,7 +510,7 @@ def get_closing_prices(shares):
     return closing_prices
 
 
-def process_closing_prices(shares, closing_prices):
+def process_closing_prices(shares, closing_prices, tax_year):
     """
 
     :param shares:
@@ -518,7 +518,7 @@ def process_closing_prices(shares, closing_prices):
 
     """
     total_closing_value = Decimal('0.00')
-    closing_date = '31 Mar 2018'  # revise to get an actual date
+    closing_date = '31 Mar ' + str(tax_year)
 
     header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:8} {:>15}'
     share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:8} {:15,.2f}'
@@ -664,8 +664,8 @@ def main():
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
     dividends = get_dividends(shares)
     gross_income_from_dividends = process_dividends(shares, dividends)
-    closing_prices = get_closing_prices(shares)
-    closing_value = process_closing_prices(shares, closing_prices)
+    closing_prices = get_closing_prices(shares, tax_year)
+    closing_value = process_closing_prices(shares, closing_prices, tax_year)
     #save_closing_positions(shares)
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
 
