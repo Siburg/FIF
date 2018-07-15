@@ -109,6 +109,7 @@ class Share:
         self.opening_holding = Decimal(self.holding)
         self.opening_price = Decimal(self.closing_price)
         self.opening_value = Decimal(self.closing_value)
+        self.holding = Decimal(self.holding)    #it could be a string
         self.closing_price = Decimal('0.00')
         self.gross_income_from_dividends = Decimal('0.00')
         self.cost_of_trades = Decimal('0.00')
@@ -567,7 +568,6 @@ def process_closing_prices(shares, closing_prices):
     # This could risk double printing if a zero price is included in
     # the closing_prices list, but is otherwise harmless.
     for share in shares:
-        if share.closing_price == Decimal(0) or share.holding == Decimal(0):
             print(share_format_string.format(
                 share.code, share.full_name, share.closing_price, share.holding, 0,
                 share.currency, 0))
@@ -666,7 +666,7 @@ def main():
     gross_income_from_dividends = process_dividends(shares, dividends)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices)
-    save_closing_positions(shares)
+    #save_closing_positions(shares)
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
 
     if any_quick_sale_adjustment:
