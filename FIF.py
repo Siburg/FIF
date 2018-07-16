@@ -309,7 +309,8 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year):
     previous_closing_date = '31 Mar ' + str(tax_year - 1)
 
     header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:13} {:>15}'
-    share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
+    share_format_string = \
+        '{:15.15} {:26.26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between most {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nOpening positions, based on previous closing positions for {}'.format(
@@ -393,7 +394,7 @@ def process_trades(shares, trades):
 
     header_format_string = '{:15} {:14} {:>11} {:>10} {:>12} {:>15} {:13} {:>15}'
     trade_format_string = \
-        '{:15} {:14} {:11,.2f} {:10,.2f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
+        '{:15.15} {:14} {:11,.2f} {:10,.2f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
@@ -472,7 +473,7 @@ def process_dividends(shares, dividends):
     total_income_from_dividends = Decimal('0.00')
 
     header_format_string = '{:15} {:14} {:>22} {:>12} {:>15} {:13} {:>15}'
-    dividend_format_string = '{:15} {:14} {:22,f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
+    dividend_format_string = '{:15.15} {:14} {:22,f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nDividends')
@@ -535,7 +536,8 @@ def process_closing_prices(shares, closing_prices, tax_year):
     closing_date = '31 Mar ' + str(tax_year)
 
     header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:13} {:>15}'
-    share_format_string = '{:15} {:26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
+    share_format_string = \
+        '{:15.15} {:26.26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nClosing positions for {}'.format(closing_date))
@@ -582,11 +584,9 @@ def process_closing_prices(shares, closing_prices, tax_year):
     # This could risk double printing if a zero price is included in
     # the closing_prices list, but is otherwise harmless.
     for share in shares:
-        currency_FX_rate = FX_rate(share.currency, closing_date, 'month-end')
-        # obviously this needs work
         print(share_format_string.format(
                 share.code, share.full_name, share.closing_price, share.holding, 0,
-                share.currency, currency_FX_rate, 0))
+                share.currency, 0., 0))
 
     print('{:>112}'.format('---------------'))
     print('{:72}{:>40,.2f}\n'.format('total closing value', total_closing_value))
