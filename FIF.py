@@ -522,6 +522,14 @@ def get_closing_prices(shares, tax_year):
     """
     closing_prices = []
     closing_price_info = namedtuple('closing_price_info', 'code, price')
+    filename = askopenfilename()
+    Tk().withdraw
+    with open(filename, newline='') as closing_prices_file:
+        reader = csv.DictReader(closing_prices_file)
+        for row in reader:
+            row_info = closing_price_info(code = row['code'], price = row['price'])
+            closing_prices.append(row_info)
+
     return closing_prices
 
 
@@ -584,9 +592,10 @@ def process_closing_prices(shares, closing_prices, tax_year):
     # This could risk double printing if a zero price is included in
     # the closing_prices list, but is otherwise harmless.
     for share in shares:
-        print(share_format_string.format(
-                share.code, share.full_name, share.closing_price, share.holding, 0,
-                share.currency, 0., 0))
+        if share.closing_price == Decimal(0) or share.closing_value == Decimal(0):
+            print(share_format_string.format(
+                    share.code, share.full_name, share.closing_price, share.holding, 0,
+                    share.currency, 0., 0))
 
     print('{:>112}'.format('---------------'))
     print('{:72}{:>40,.2f}\n'.format('total closing value', total_closing_value))
