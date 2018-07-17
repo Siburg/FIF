@@ -140,7 +140,7 @@ class Trade:
     """
     add comments
     """
-    def __init__(self, code, date, number_of_shares, share_price, trade_costs):
+    def __init__(self, code, date, number_of_shares, share_price, trade_costs = '0.00'):
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
@@ -313,6 +313,9 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year):
         '{:15.15} {:26.26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between most {} items, so don't forget to
     # count those spaces for the opening_value line width.
+    # Note that share price may have more than 2 decimals. That is no
+    # problem for storing and processing, but think about how to
+    # show that in print (or not).
     print('\nOpening positions, based on previous closing positions for {}'.format(
         previous_closing_date))
     print(header_format_string.format(
@@ -360,6 +363,20 @@ def get_trades(shares):
     :return:
     """
     trades = []
+    filename = askopenfilename()
+    Tk().withdraw
+    with open(filename, newline='') as trades_file:
+        reader = csv.DictReader(trades_file)
+        for row in reader:
+
+            # trade = Trade(row['code'], row['date'], row['number_of_shares'],
+            #               row['share_price'], row['trade_costs'])
+            # Lines above are what it should be.
+            # Lines below are temporary fix to deal with incomplete test data
+            trade = Trade(row['code'], row['date'], row['number_of_shares'],
+                          '0.00', '0.00')
+
+            trades.append(trade)
     return trades
 
 
@@ -394,7 +411,7 @@ def process_trades(shares, trades):
 
     header_format_string = '{:15} {:14} {:>11} {:>10} {:>12} {:>15} {:13} {:>15}'
     trade_format_string = \
-        '{:15.15} {:14} {:11,.2f} {:10,.2f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
+        '{:15.15} {:14} {:11,.2f} {:10,f} {:12,f} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
@@ -548,6 +565,9 @@ def process_closing_prices(shares, closing_prices, tax_year):
         '{:15.15} {:26.26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between the {} items, so don't forget to
     # count those spaces for the opening_value line width.
+    # Note that share price may have more than 2 decimals. That is no
+    # problem for storing and processing, but think about how to
+    # show that in print (or not).
     print('\nClosing positions for {}'.format(closing_date))
     print(header_format_string.format(
         'share code', 'name / description', 'price', 'shares held', 'foreign value',
