@@ -150,6 +150,8 @@ class Share:
 class Trade:
     """
     Holds information on share trades.
+    Could conceivably be replaced with a dict, or a namedtuple, or
+    another type of object.
 
     Input arguments:
     code: the code, abbreviation or symbol to identify the share issuer.
@@ -157,7 +159,8 @@ class Trade:
         holding, or can be for a new share purchased during the tax
         period.
     date: the transaction date (and probably time as well) of the trade
-        (during the tax period).
+        (during the tax period). This should be in the form of a
+        datetime object.
     number_of_shares: the number of shares acquired in the trade. This
         will be positive for a share acquisition and negative for a
         share disposal. It can include fractional shares.
@@ -212,12 +215,11 @@ class Dividend:
 
     Input arguments:
     code: a code, abbreviation or symbol to identify the share.
-    full_name: the full name, or description, for the share.
     date: the payment date for the dividend (not the declaration date
         or other type of date). This should be in the form of a
         datetime object.
     per_share: the dividend per share, in its native currency, as
-        declared by the issues.
+        declared by the issuer. This can have more than 2 decimals.
     gross_paid: the gross sum paid, before any withholding or other
         taxes, in its native currency, for the dividend.
 
@@ -226,7 +228,7 @@ class Dividend:
         paid; calculated as gross_paid / per_share. Note that this
         can be different from the number of shares held on the payment
         date, because not all of those may have been eligible (yet) for
-        the dividend.
+        the dividend. This can include fractional shares.
 
     All numerical values are stored as Decimals. It is strongly
     recommended to pass numerical values for them as strings (or
@@ -239,6 +241,12 @@ class Dividend:
     for dividends paid.
     """
     def __init__(self, code, date, per_share, gross_paid):
+        """
+        Constructor function. eligible_shares is calculated from the
+        other inputs.
+
+        return: None
+        """
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
@@ -248,6 +256,7 @@ class Dividend:
         # Note that self.gross_paid should be gross before tax, or the
         # calculation below will need to be modified for tax effects.
         self.eligible_shares = self.gross_paid / self.per_share
+        return
 
     def __repr__(self):
         return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
@@ -255,18 +264,22 @@ class Dividend:
 
 
 class IntegerError(Exception):
+    """Used to raise error in input processing function."""
     pass
 
 class TooEarlyError(Exception):
+    """Used to raise error in input processing function."""
     pass
 
 class TooLateError(Exception):
+    """Used to raise error in input processing function."""
     pass
 
 
 def get_tax_year():
     """
-
+    Obtains the tax year, i.e. the year in which the tax period ends,
+    from manual user input.
     :return:
     """
     prompt = 'Enter the year in which the income tax period ends: '
@@ -771,6 +784,7 @@ def main():
 
     FDR_income = FDR_basic_income + quick_sale_adjustments
     FIF_income = max(0, min(FDR_income, CV_income))
+    return
 
 
 if __name__ == '__main__':
