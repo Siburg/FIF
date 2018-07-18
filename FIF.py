@@ -6,7 +6,7 @@ using the Fair Dividend Rate (FDR) method and the Comparative Value
 result for FIF income.
 
 Note that some tax payers may use other methods as well or instead.
-Such other methods are not covered by this program.gr
+Such other methods are not covered by this program.
 
 by Jelle Sjoerdsma
 July 2018
@@ -38,20 +38,26 @@ class Share:
     Holds information on shares and shareholdings.
     Input arguments:
     code: a code, abbreviation or symbol to identify the share issuer.
+    full_name: the name or description of the share issuer and/or class.
     currency: currency of the share prices.
     opening_holding : number of shares held at start of the tax period.
-    opening_price: price per share at start of the tax period.
+    opening_price: price per share at start of the tax period (in its
+    native currency).
 
     Other instance variables that are available:
     holding: current number of shares held, as calculated from other
-        inputs.
-    closing_price: price per share at end of the tax period.
-    opening_value: to be calculated, and remembered.
-    gross_income_from_dividends: to be calculated, and remembered.
-    cost_of_trades: to be calculated, and remembered.
-    closing_value: to be calculated, and remembered.
+        inputs. At the end of the tax period this should be its closing
+        holding. Note that this can include fractional shares.
+    closing_price: price per share at end of the tax period (in its
+        native currency). Note that prices can have more than 2
+        decimals.
+    opening_value: to be calculated, and remembered, in NZD.
+    gross_income_from_dividends: to be calculated, and remembered, in
+        NZD.
+    cost_of_trades: to be calculated, and remembered, in NZD.
+    closing_value: to be calculated, and remembered, in NZD.
     quick_sale_adjustments: to be calculated,  if needed, and
-        remembered.
+        remembered. If it has a positive value it will be in NZD.
 
     All numerical values are stored as Decimals. It is strongly
     recommended to pass numerical values for them as strings (or
@@ -61,9 +67,9 @@ class Share:
     THINK IF WE NEED A DATE, OR AT LEAST A YEAR INDICATOR for the
     shareholding
 
-    Consider splitting
-    the class later into a Share class and a Holding class, or have
-    a list of shareholdings over time inside the class.
+    Consider splitting the class later into a Share class and a
+    Holding class, or have a list of shareholdings over time inside the
+    class.
     """
     def __init__(self, code, full_name='', currency='USD', opening_holding='0',
                  opening_price='0.00'):
@@ -71,6 +77,8 @@ class Share:
         Constructor function with defaults set to zero for numerical
         values. Default for currency is USD. Change that if you wish
         another default currency, e.g. AUD.
+
+        return: None
         """
         self.code = code
         self.full_name = full_name
@@ -83,7 +91,7 @@ class Share:
         # preparation and for clarity.
         self.holding = self.opening_holding
         # holding is set to opening_holding (after conversion to
-        # Decimal) at initialisation
+        # Decimal) at initialisation.
         # STILL NEED TO THINK IF THIS RIGHT APPROACH
         self.closing_price = Decimal('0.00')
         self.opening_value = Decimal('0.00')
@@ -99,13 +107,13 @@ class Share:
         shares with closing values read in from a prior tax year. The
         opening values are set to those prior closing values, and
         closing values are reinitialised.
-        Nothing happens if closing_value is not positive, on the
-        assumption that this means the share has been re-initialised
-        already, or is not a valid prior year share.
-        THINK MORE ABOUT THIS ASSUMPTION
-        could be wrong if share is bought and sold during a year
+        Be very careful with this. There is no check if it has run
+        previously, and using the function twice could lead to loss
+        of information. The program may not need this at all.
+
+        input arguments: none.
+        return: None.
         """
-        # if Decimal(self.closing_value) > Decimal(0):
         self.opening_holding = Decimal(self.holding)
         self.opening_price = Decimal(self.closing_price)
         self.opening_value = Decimal(self.closing_value)
@@ -122,11 +130,14 @@ class Share:
         Adds Decimal value of increase to holding. This means a
         positive value will increase holding, and a negative value
         will decrease it.
-        increase: number of shares to increase/(decrease) holding with
-        return: holding after the increase, in Decimal
 
-        increase should be passed as a string (or as Decimal already)
-        but will also accept an integer value.
+        input arguments:
+        increase: number of shares to increase/(decrease) holding with.
+            This should be passed as a string (or as Decimal already)
+            but will also accept an integer value.
+        return: holding (i.e. number of shares) after the increase,
+            in Decimal.
+
         """
         self.holding += Decimal(increase)
         return self.holding
@@ -138,9 +149,47 @@ class Share:
 
 class Trade:
     """
-    add comments
+    Holds information on share trades.
+
+    Input arguments:
+    code: the code, abbreviation or symbol to identify the share issuer.
+        This can match the code of a share that is part of opening
+        holding, or can be for a new share purchased during the tax
+        period.
+    date: the transaction date (and probably time as well) of the trade
+        (during the tax period).
+    number_of_shares: the number of shares acquired in the trade. This
+        will be positive for a share acquisition and negative for a
+        share disposal. It can include fractional shares.
+    share_price: average price of shares traded in the transaction (in
+        its native currency). This price may have more than 2 decimals.
+    trade_costs: the aggregate costs, fees or charges incurred for
+        executing the trade (in addition to the price of the shares
+        themselves, e.g. brokerage fees; this is a total cost, not a
+        cost per share). These must be in the same currency as the
+        share price (for now; otherwise we must allow a separately
+        identified currency for the costs component of a trade).
+
+    Other instance variables that are available:
+    charge: the total costs of an acquisition including trade_costs;
+        or the net proceeds from a divestment after deducting trade
+        costs (which will almost always be a negative value, unless
+        trade costs exceed the gross share disposal proceeds). It is
+        in the same currency as the share price (for now). It is not
+        rounded and may have more than 2 decimals.
+
+    All numerical values are stored as Decimals. It is strongly
+    recommended to pass numerical values for them as strings (or
+    already in the form of Decimals), so they can be accurately
+    converted to Decimals.
     """
     def __init__(self, code, date, number_of_shares, share_price, trade_costs = '0.00'):
+        """
+        Constructor function. trade_costs have a default value of
+        Decimal(0). charge is calculated from the other inputs.
+
+        return: None
+        """
         self.code = code
         # add functions to parse date into a datetime object
         self.date = date
@@ -148,6 +197,7 @@ class Trade:
         self.share_price = Decimal(share_price)
         self.trade_costs = Decimal(trade_costs)
         self.charge = self.number_of_shares * self.share_price + self.trade_costs
+        return
 
     def __repr__(self):
         return 'trade for {:,f} shares of {} on {} at {:,.2f} with costs of {:,.2f}'.format(
