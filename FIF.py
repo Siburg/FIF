@@ -388,7 +388,10 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year):
     # Need to do something better for setting date below
     previous_closing_date = '31 Mar ' + str(tax_year - 1)
 
-    header_format_string = '{:15} {:26} {:>10} {:>12} {:>15} {:13} {:>15}'
+    wcode = 15  # width for code field in format string
+    pcode = wcode   # precision for code field in format string
+#    header_format_string = '{v1:{w1}.{p1}} {:26} {:>10} {:>12} {:>15} {:13} {:>15}'
+    header_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}'
     share_format_string = \
         '{:15.15} {:26.26} {:10,.2f} {:12,} {:15,.2f} {:3}{:10.4f} {:15,.2f}'
     # Note there are spaces between most {} items, so don't forget to
@@ -399,8 +402,10 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year):
     print('\nOpening positions, based on previous closing positions for {}'.format(
         previous_closing_date))
     print(header_format_string.format(
-        'share code', 'name / description', 'price', 'shares held', 'foreign value',
-        'currency rate', 'NZD value'))
+        v1 = 'share code', w1 = wcode, p1 = pcode,
+        v2 = 'name / description', w2 = 26, p2 = 26))
+#        , 'price', 'shares held', 'foreign value',
+#        'currency rate', 'NZD value'))
     print(112 * '-')
 
     for share in opening_shares:
@@ -791,8 +796,22 @@ def main():
     gross_income_from_dividends = process_dividends(shares, dividends)
     closing_prices = get_closing_prices(shares, tax_year)
     closing_value = process_closing_prices(shares, closing_prices, tax_year)
-    #save_closing_positions(shares)
+# uncomment next when ready to actually save
+#    save_closing_positions(shares)
+
+    # move next to a function that includes printing of CV results
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
+
+
+    """
+    Reconsider next part.
+    If CV_income is < FDR_basic_income we do not even need to look at
+    quick sale adjustments. CV_income will already be the minimum,
+    regardless of any such adjustments; which can only result in an
+    increase of FDR_income.
+    Make sure we print results and outcomes, probably from within 
+    one or more functions.
+    """
 
     if any_quick_sale_adjustment:
         quick_sale_adjustments = calc_QSA(shares, trades, dividends)
