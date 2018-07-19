@@ -78,6 +78,7 @@ class Share:
         values. Default for currency is USD. Change that if you wish
         another default currency, e.g. AUD.
 
+        input arguments: as per descriptions for the class.
         return: None
         """
         self.code = code
@@ -191,6 +192,7 @@ class Trade:
         Constructor function. trade_costs have a default value of
         Decimal(0). charge is calculated from the other inputs.
 
+        input arguments: as per descriptions for the class.
         return: None
         """
         self.code = code
@@ -220,8 +222,9 @@ class Dividend:
         datetime object.
     per_share: the dividend per share, in its native currency, as
         declared by the issuer. This can have more than 2 decimals.
-    gross_paid: the gross sum paid, before any withholding or other
-        taxes, in its native currency, for the dividend.
+    gross_paid: the total gross sum paid, before any withholding or
+        other taxes, in its native currency, on all eligible shares for
+        the dividend.
 
     Other instance variables that are available:
     eligible_shares: the number of shares for which the dividend was
@@ -245,6 +248,7 @@ class Dividend:
         Constructor function. eligible_shares is calculated from the
         other inputs.
 
+        input arguments: as per descriptions for the class.
         return: None
         """
         self.code = code
@@ -278,28 +282,41 @@ class TooLateError(Exception):
 
 def get_tax_year():
     """
-    Obtains the tax year, i.e. the year in which the tax period ends,
-    from manual user input.
-    :return:
+    Obtains the tax year, i.e. the year in which the tax period ends.
+
+    input arguments: none.
+    return: the tax year, expressed as an integer
+
+    The tax year is now obtained from manual user input, following a
+    prompt and reply. The function could potentially be restructured
+    to read the tax year from a file with other date. It could even be
+    integrated with the get_opening_positions function if that were
+    to include a reading of a date to which those positions apply.
+
+    This function is the first one called by the main function. It
+    allows the user to enter "quit", instead of a year. If the user
+    does that the program will immediately do a hard exit.
     """
     prompt = 'Enter the year in which the income tax period ends: '
     again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
     while True:
         try:
-            input_year = input(prompt)
-            if input_year == 'quit':
+            user_input = input(prompt)
+            if user_input == 'quit':
                 print('Program is now exiting')
                 sys.exit()
                 # This is a hard exit. No need to do anything more.
 
-            if not input_year.isdigit():
+            if not user_input.isdigit():
                 raise IntegerError
-            tax_year = int(input_year)
+
+            tax_year = int(user_input)
             if tax_year < 2008:
                 raise TooEarlyError
             if tax_year > 2100:
                 raise TooLateError
-            break   # out of the while loop
+
+            break   # out of the loop, with a valid value, when here.
 
         except ValueError:
             prompt = 'That is not a valid entry.' + again
