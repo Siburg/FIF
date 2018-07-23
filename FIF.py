@@ -118,7 +118,7 @@ class Share:
         self.opening_holding = Decimal(self.holding)
         self.opening_price = Decimal(self.closing_price)
         self.opening_value = Decimal(self.closing_value)
-        self.holding = Decimal(self.holding)    #it could be a string
+        self.holding = Decimal(self.holding)    # it could be a string
         self.closing_price = Decimal('0.00')
         self.gross_income_from_dividends = Decimal('0.00')
         self.cost_of_trades = Decimal('0.00')
@@ -289,8 +289,8 @@ def get_tax_year():
 
     The tax year is now obtained from manual user input, following a
     prompt and reply. The function could potentially be restructured
-    to read the tax year from a file with other date. It could even be
-    integrated with the get_opening_positions function if that were
+    to read the tax year from a file with other date(s). It could even
+    be integrated with the get_opening_positions function if that were
     to include a reading of a date to which those positions apply.
 
     This function is the first one called by the main function. It
@@ -331,16 +331,37 @@ def get_tax_year():
     return tax_year
 
 
-def get_opening_positions(tax_year):
+def get_opening_positions():
     """
+    Creates the list of shares with opening positions that will be used
+    as starting point for all subsequent processing.
 
-    :param tax_year:
-    :return:
+    input arguments: none.
+
+    return:
+    opening_shares: list of Share instances with information for each
+        share at the opening of the tax period.
+
+    For shares that were already held at the end of the previous tax
+    period, the information on opening positions must be the same as
+    that of the closing positions in the previous year. For example,
+    the price at opening must be the same as the closing price at the
+    end of the prior period. This means the closing price on 31 March;
+    not a potential market opening price on 1 April.
+
+    The list may also include information on shares with a zero opening
+    position. This could be useful to have starting information with
+    the code, full_name, and currency of shares that are subsequently
+    acquired during the year.
+
+    The function is now designed to only read such information from a
+    csv file. It may be extended with additional input methods.
     """
     opening_positions = []
     filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
     # filename = askopenfilename()
     # Tk().withdraw
+    # This is to remove the GUI window that was opened.
     with open(filename, newline='') as shares_file:
         reader = csv.DictReader(shares_file)
         for row in reader:
@@ -348,13 +369,12 @@ def get_opening_positions(tax_year):
                 full_name = row['full_name']
             else:
                 full_name = ''
-            opening_share = Share(row['code'], full_name, row['currency'],
+            if 'currency' in row:
+                currency = row['currency']
+            else:
+                currency = 'USD'
+            opening_share = Share(row['code'], full_name, currency,
                 row['holding'], row['closing_price'])
-            # for key, value in row.items():
-            #     opening_share.__dict__[key] = str(value)i
-#            opening_share.__dict__.update(row)
-#             opening_share.re_initialise_with_prior_year_closing_values()
-#            print(opening_share.__dict__)
             opening_positions.append(opening_share)
 
     return opening_positions
@@ -368,11 +388,14 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
     First for each share individually, and then the combined total.
     Prints inputs and results in a tabular format.
 
-    arguments:
+    input arguments:
     opening_shares: list of shares, as obtained from
         get_opening_positions (i.e. without any updates from trades)
     fair_dividend_rate: the statutory Fair Dividend Rate. This should
         be provided as a string or a Decimal.
+    tax_year: the year in which the tax period ends. This must be
+        provided as an integer.
+    outfmt: output formats for a range of items, in the form of a dict.
 
     return: (tuple with)
     total_opening_value: in NZD
@@ -380,9 +403,6 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
 
     other data changes (to mutable objects in arguments):
     opening_value for each Share in opening_shares is set.
-
-    Code is ignoring currencies for now. An exchange rate of 1 is
-    temporarily used for all currencies.
     """
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
@@ -394,9 +414,7 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
     share_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},.{p5}f}' + '{v6:>{w6}}' + '{v7:>{w7},.{p7}f}' + \
         '{v8:>{w8},.{p8}f}'
-    # Note that share price may have more than 2 decimals. That is no
-    # problem for storing and processing, but think about how to
-    # show that in print (or not).
+    # Note that share price may have more than 2 decimals.
     print('\nOpening positions, based on previous closing positions for {}'.format(
         previous_closing_date))
     print(header_format_string.format(
@@ -870,7 +888,7 @@ def main():
 
     tax_year = 2016
     #tax_year = get_tax_year()
-    shares = get_opening_positions(tax_year)
+    shares = get_opening_positions()
     # get exchange rates
     opening_value, FDR_basic_income = process_opening_positions(
         shares, FAIR_DIVIDEND_RATE, tax_year, output_format)
