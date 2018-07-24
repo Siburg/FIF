@@ -471,10 +471,19 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
     return total_opening_value, FDR_basic_income
 
 
-def get_trades(shares):
+def get_trades():
     """
-    ADD COMMENTS
-    :return:
+    Creates the list of share trades that may have taken place.
+
+    input arguments: none.
+
+    return:
+    trades: list of Trade instances with information for each
+        trade (i.e. acquisition or disposal of shares) made during the
+        tax period. The list may be empty.
+
+    The function is now designed to only read such information from a
+    csv file. It may be extended with additional input methods.
     """
     trades = []
     filename = '/home/jelle/Documents/Trades2016.csv'
@@ -602,10 +611,18 @@ def process_trades(shares, trades, outfmt):
     return total_cost_of_trades, any_quick_sale_adjustment
 
 
-def get_dividends(shares):
+def get_dividends():
     """
-    ADD COMMENTS
-    :return:
+    Creates the list with information on dividends received during the
+    tax period.
+
+    input arguments: none.
+
+    return:
+    dividends: list of Dividend instances with information for each
+        dividend received during the tax period. The list may be empty.
+
+    FUNCIONALITY STILL TO BE IMPLEMENTED. IT NOW RETURNS AN EMPTY LIST.
     """
     dividends = []
     return dividends
@@ -673,10 +690,24 @@ def process_dividends(shares, dividends, outfmt):
     return total_income_from_dividends
 
 
-def get_closing_prices(shares, tax_year):
+def get_closing_prices():
     """
+    Creates the list with closing prices for shares.
 
-    :return:
+    input arguments: none.
+
+    return:
+    closing prices: list of named tuples with closing_price_info.
+        Each such tuple contains:
+        code: this must match the code in an existing  Share instance.
+        price: the closing price, at the end of the tax period, for
+            the share with that code.
+    The list may be empty.
+
+    SOME COMMENT THAT WE DON"T NEED IT FOR SHARES WITH 0 HOLDING
+
+    The function is now designed to only read such information from a
+    csv file. It may be extended with additional input methods.
     """
     closing_prices = []
     closing_price_info = namedtuple('closing_price_info', 'code, price')
@@ -894,11 +925,11 @@ def main():
         shares, FAIR_DIVIDEND_RATE, tax_year, output_format)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
-    trades = get_trades(shares)
+    trades = get_trades()
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades, output_format)
-    dividends = get_dividends(shares)
+    dividends = get_dividends()
     gross_income_from_dividends = process_dividends(shares, dividends, output_format)
-    closing_prices = get_closing_prices(shares, tax_year)
+    closing_prices = get_closing_prices()
     closing_value = process_closing_prices(shares, closing_prices, tax_year, output_format)
 # uncomment next when ready to actually save
 #    save_closing_positions(shares)
