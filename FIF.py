@@ -473,7 +473,7 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
 
 def get_trades():
     """
-    Creates the list of share trades that may have taken place.
+    Creates the list of share trades that took place, if any.
 
     input arguments: none.
 
@@ -526,6 +526,9 @@ def process_trades(shares, trades, outfmt):
     # First, ensure there are share instances for every trade
     for trade in trades:
         # check if we do not have a matching share code
+        # consider changing the if to a while, in order to ensure
+        # we can never process unmatching trades. That may require
+        # some revamping of the code in such a while loop.
         if not any(share.code == trade.code for share in shares):
             full_name, currency = get_new_share_currency_and_full_name(trade)
             new_share = Share(trade.code, full_name, currency)
@@ -690,11 +693,16 @@ def process_dividends(shares, dividends, outfmt):
     return total_income_from_dividends
 
 
-def get_closing_prices():
+def get_closing_prices(shares):
     """
     Creates the list with closing prices for shares.
 
-    input arguments: none.
+    input arguments:
+    shares: the list of shares with their holdings at the end of the
+        tax period, i.e. their closing positions. (This list is only
+        needed to check that we get a closing price for every share
+        with a non-zero holding at the end of the tax period. If we do
+        not make such a check then we don't need any input argument.)
 
     return:
     closing prices: list of named tuples with closing_price_info.
@@ -704,9 +712,12 @@ def get_closing_prices():
             the share with that code.
     The list may be empty.
 
-    SOME COMMENT THAT WE DON"T NEED IT FOR SHARES WITH 0 HOLDING
+    closing_price_info is required for every share with a non-zero
+    closing position, i.e. a holding other than zero at the end of the
+    tax period. It may also be provided for shares with a zero holding
+    at the end of the tax period, but is not required for those shares.
 
-    The function is now designed to only read such information from a
+    The function is now designed to only read information from a
     csv file. It may be extended with additional input methods.
     """
     closing_prices = []
@@ -720,6 +731,10 @@ def get_closing_prices():
         for row in reader:
             row_info = closing_price_info(code = row['code'], price = row['price'])
             closing_prices.append(row_info)
+
+    # Consider adding functionality to check that we have a closing
+    # price for every share with a closing holding, and to ensure we
+    # get it if not.
 
     return closing_prices
 
@@ -756,7 +771,8 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
 
     for closing_price_info in closing_prices:
         # Assume that we did indeed obtain a closing price for every
-        # share with a closing holding > 0.
+        # share with a closing holding > 0. This functionality can be
+        # forced in get_closing_prices.
         # Don't use filter function here because there is only one
         # share per closing price so we can break out of the inner loop
         # as soon as we find it.
@@ -812,9 +828,6 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
                 v7=0.0, w7=outfmt['FX rate'].width,
                     p7=outfmt['FX rate'].precision,
                 v8=0.0, w8=outfmt['value'].width, p8=outfmt['value'].precision))
-
-            # share.code, share.full_name, share.closing_price, share.holding, 0,
-                    # share.currency, 0., 0))
 
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
     print('{v1:{w1}}{v2:>{w2},.{p2}f}\n'.format(
@@ -895,6 +908,8 @@ def get_new_share_currency_and_full_name(trade):
                       trade.code + ' : ')
     # Consider adding a while loop to ensure we get a string value.
     # Also consider if we allow a blank return.
+    # Also consider a sentinel value such as "quit" allowing the user
+    # exit the program altogether.
     return full_name, currency
 
 
@@ -929,7 +944,7 @@ def main():
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades, output_format)
     dividends = get_dividends()
     gross_income_from_dividends = process_dividends(shares, dividends, output_format)
-    closing_prices = get_closing_prices()
+    closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, tax_year, output_format)
 # uncomment next when ready to actually save
 #    save_closing_positions(shares)
