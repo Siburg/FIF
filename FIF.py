@@ -136,6 +136,7 @@ class Share:
         increase: number of shares to increase/(decrease) holding with.
             This should be passed as a string (or as Decimal already)
             but will also accept an integer value.
+
         return: holding (i.e. number of shares) after the increase,
             in Decimal.
 
@@ -271,9 +272,11 @@ class IntegerError(Exception):
     """Used to raise error in input processing function."""
     pass
 
+
 class TooEarlyError(Exception):
     """Used to raise error in input processing function."""
     pass
+
 
 class TooLateError(Exception):
     """Used to raise error in input processing function."""
@@ -828,6 +831,7 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
                 v7=0.0, w7=outfmt['FX rate'].width,
                     p7=outfmt['FX rate'].precision,
                 v8=0.0, w8=outfmt['value'].width, p8=outfmt['value'].precision))
+
 
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
     print('{v1:{w1}}{v2:>{w2},.{p2}f}\n'.format(
