@@ -5,6 +5,7 @@ import unittest
 from unittest import mock
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
+from datetime import date
 
 
 class TestShare(unittest.TestCase):

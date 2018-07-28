@@ -22,6 +22,7 @@ such as share splits or share reorganisations.
 """
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
+from datetime import date, datetime
 from collections import namedtuple
 from operator import attrgetter
 import csv
@@ -36,7 +37,7 @@ FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 class Share:
     """
     Holds information on shares and shareholdings.
-    Input arguments:
+    Input variables:
     code: a code, abbreviation or symbol to identify the share issuer.
     full_name: the name or description of the share issuer and/or class.
     currency: currency of the share prices.
@@ -155,7 +156,7 @@ class Trade:
     Could conceivably be replaced with a dict, or a namedtuple, or
     another type of object.
 
-    Input arguments:
+    Input variables:
     code: the code, abbreviation or symbol to identify the share issuer.
         This can match the code of a share that is part of opening
         holding, or can be for a new share purchased during the tax
@@ -216,7 +217,7 @@ class Dividend:
     Could conceivably be replaced with a dict, or a namedtuple, or
     another type of object.
 
-    Input arguments:
+    Input variables:
     code: a code, abbreviation or symbol to identify the share.
     date: the payment date for the dividend (not the declaration date
         or other type of date). This should be in the form of a
@@ -409,8 +410,8 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
     """
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
-    # Need to do something better for setting date below
-    previous_closing_date = '31 Mar ' + str(tax_year - 1)
+    # Tax year end of 31 March is hard coded below
+    previous_closing_date = date(tax_year - 1, 3, 31)
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
@@ -418,8 +419,8 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
         '{v4:>{w4},}' + '{v5:>{w5},.{p5}f}' + '{v6:>{w6}}' + '{v7:>{w7},.{p7}f}' + \
         '{v8:>{w8},.{p8}f}'
     # Note that share price may have more than 2 decimals.
-    print('\nOpening positions, based on previous closing positions for {}'.format(
-        previous_closing_date))
+    print('\nOpening positions, based on previous closing positions for 31 Mar {}'.format(
+        tax_year - 1))
     print(header_format_string.format(
         v1 = outfmt['code'].header, w1 = outfmt['code'].width,
         v2=outfmt['full_name'].header, w2=outfmt['full_name'].width,
@@ -496,12 +497,16 @@ def get_trades():
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
+            #date_string = row['date']
+            trade_date_time = datetime.strptime(row['date'], '%Y-%m-%d')
 
             # trade = Trade(row['code'], row['date'], row['number_of_shares'],
             #               row['share_price'], row['trade_costs'])
             # Lines above are what it should be.
             # Lines below are temporary fix to deal with incomplete test data
-            trade = Trade(row['code'], row['date'], row['number_of_shares'],
+            # trade = Trade(row['code'], row['date'], row['number_of_shares'],
+            #               '0.00', '0.00')
+            trade = Trade(row['code'], trade_date_time, row['number_of_shares'],
                           '0.00', '0.00')
 
             trades.append(trade)
@@ -543,7 +548,7 @@ def process_trades(shares, trades, outfmt):
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:>{w6}}' + '{v7:>{w7}}' + '{v8:>{w8}}' + '{v9:>{w9}}'
-    trade_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}}' + '{v3:>{w3},}' + \
+    trade_format_string = '{v1:{w1}.{p1}}' + '{v2}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},}' + '{v6:>{w6},.{p6}f}' + '{v7:>{w7}}' + \
         '{v8:>{w8},.{p8}f}' + '{v9:>{w9},.{p9}f}'
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
@@ -590,7 +595,7 @@ def process_trades(shares, trades, outfmt):
 
         print(trade_format_string.format(
             v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
-            v2=trade.date, w2=outfmt['date'].width,
+            v2=trade.date.strftime('%Y-%m-%d     '),
             v3=trade.trade_costs, w3=outfmt['fees'].width,
             v4=trade.share_price, w4=outfmt['price'].width,
             v5=trade.number_of_shares, w5=outfmt['holding'].width,
@@ -750,7 +755,8 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
 
     """
     total_closing_value = Decimal('0.00')
-    closing_date = '31 Mar ' + str(tax_year)
+    # Tax year ending on 31 March is hard coded below
+    closing_date = date(tax_year, 3, 31)
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
@@ -760,7 +766,7 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
     # Note that share price may have more than 2 decimals. That is no
     # problem for storing and processing, but think about how to
     # show that in print (or not).
-    print('\nClosing positions for {}'.format(closing_date))
+    print('\nClosing positions for 31 Mar {}'.format(tax_year))
     print(header_format_string.format(
         v1 = outfmt['code'].header, w1 = outfmt['code'].width,
         v2=outfmt['full_name'].header, w2=outfmt['full_name'].width,
