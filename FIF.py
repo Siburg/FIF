@@ -161,9 +161,9 @@ class Trade:
         This can match the code of a share that is part of opening
         holding, or can be for a new share purchased during the tax
         period.
-    date: the transaction date (and probably time as well) of the trade
-        (during the tax period). This should be in the form of a
-        datetime object.
+    date_time: the transaction date and time of the trade (during the
+        tax period). This should  be in the form of a datetime object.
+        The time will be 00:00:00 if there is no information for it.
     number_of_shares: the number of shares acquired in the trade. This
         will be positive for a share acquisition and negative for a
         share disposal. It can include fractional shares.
@@ -189,7 +189,7 @@ class Trade:
     already in the form of Decimals), so they can be accurately
     converted to Decimals.
     """
-    def __init__(self, code, date, number_of_shares, share_price, trade_costs = '0.00'):
+    def __init__(self, code, date_time, number_of_shares, share_price, trade_costs = '0.00'):
         """
         Constructor function. trade_costs have a default value of
         Decimal(0). charge is calculated from the other inputs.
@@ -199,7 +199,7 @@ class Trade:
         """
         self.code = code
         # add functions to parse date into a datetime object
-        self.date = date
+        self.date_time = date_time
         self.number_of_shares = Decimal(number_of_shares)
         self.share_price = Decimal(share_price)
         self.trade_costs = Decimal(trade_costs)
@@ -208,7 +208,8 @@ class Trade:
 
     def __repr__(self):
         return 'trade for {:,f} shares of {} on {} at {:,.2f} with costs of {:,.2f}'.format(
-               self.number_of_shares, self.code, self.date, self.share_price, self.trade_costs)
+            self.number_of_shares, self.code, self.date_time, self.share_price,
+            self.trade_costs)
 
 
 class Dividend:
@@ -497,7 +498,6 @@ def get_trades():
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
-            #date_string = row['date']
             trade_date_time = datetime.strptime(row['date'], '%Y-%m-%d')
 
             # trade = Trade(row['code'], row['date'], row['number_of_shares'],
@@ -522,11 +522,10 @@ def process_trades(shares, trades, outfmt):
     """
     total_cost_of_trades = Decimal('0.00')
     any_quick_sale_adjustment = False
-    # trades.sort(key = lambda trade: trade.date)
-    trades.sort(key = attrgetter('date'))   # faster key implementation
-    # Sorting the trades by date is necessary to work out the need for
-    # a quick sale adjustment, and to properly calculate such an
-    # adjustment later if needed.
+    trades.sort(key = attrgetter('date_time'))
+    # Sorting the trades by date and time is necessary to work out the
+    # need for a quick sale adjustment, and to properly calculate such
+    # an adjustment later if needed.
     # The sort is done in place, and trades is a mutable object, so the
     # sorting should be retained for later use of the trades list
     # outside this function as well.
@@ -548,13 +547,13 @@ def process_trades(shares, trades, outfmt):
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:>{w6}}' + '{v7:>{w7}}' + '{v8:>{w8}}' + '{v9:>{w9}}'
-    trade_format_string = '{v1:{w1}.{p1}}' + '{v2}' + '{v3:>{w3},}' + \
+    trade_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},}' + '{v6:>{w6},.{p6}f}' + '{v7:>{w7}}' + \
         '{v8:>{w8},.{p8}f}' + '{v9:>{w9},.{p9}f}'
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
     print(header_format_string.format(
         v1 = outfmt['code'].header, w1 = outfmt['code'].width,
-        v2='trade date', w2=outfmt['date'].width,
+        v2=outfmt['date'].header, w2=outfmt['date'].width,
         v3=outfmt['fees'].header, w3=outfmt['fees'].width,
         v4=outfmt['price'].header, w4=outfmt['price'].width,
         v5=outfmt['holding'].header, w5=outfmt['holding'].width,
@@ -571,7 +570,7 @@ def process_trades(shares, trades, outfmt):
 
             share.increase_holding(trade.number_of_shares)
 
-            currency_FX_rate = FX_rate(share.currency, trade.date, 'mid-month')
+            currency_FX_rate = FX_rate(share.currency, trade.date_time, 'mid-month')
             # obviously this needs work
 
             NZD_value = (trade.charge * currency_FX_rate).quantize(
@@ -595,7 +594,8 @@ def process_trades(shares, trades, outfmt):
 
         print(trade_format_string.format(
             v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
-            v2=trade.date.strftime('%Y-%m-%d     '),
+            v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
+                p2=outfmt['date'].precision,
             v3=trade.trade_costs, w3=outfmt['fees'].width,
             v4=trade.share_price, w4=outfmt['price'].width,
             v5=trade.number_of_shares, w5=outfmt['holding'].width,
@@ -938,7 +938,7 @@ def main():
     output_format['currency'] = item_format(' cur', 4, 4)
     output_format['FX rate'] = item_format('rency rate', 10, 4)
     output_format['fees'] = item_format('fees', 12, 2)
-    output_format['date'] = item_format('date', 15, 999)
+    output_format['date'] = item_format(' date ( & time)', 15, 15)
     output_format['dividend'] = item_format('gross dividend', 22, 999)
     output_format['total width'] = 112
 
