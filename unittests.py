@@ -7,6 +7,24 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 from datetime import date
 
+item_format = namedtuple('item_output_format', 'header, width, precision')
+output_format = {}
+output_format['code'] = item_format('share code', 16, 16)
+output_format['full_name'] = item_format('name / description', 27, 27)
+output_format['price'] = item_format('price', 10, 999)
+output_format['holding'] = item_format('shares', 13, 999)
+output_format['value'] = item_format('value', 16, 2)
+# Next 2 lines are a bit of kludge to combine " currency rate" in
+# the header. We also want a space after printing the previous
+# value, so that is why we are right-aligning the 3-letter
+# currency in a field with a width of 4.
+output_format['currency'] = item_format(' cur', 4, 4)
+output_format['FX rate'] = item_format('rency rate', 10, 4)
+output_format['fees'] = item_format('fees', 12, 2)
+output_format['date'] = item_format(' date ( & time)', 15, 15)
+output_format['dividend'] = item_format('gross dividend', 22, 999)
+output_format['total width'] = 112
+
 
 class TestShare(unittest.TestCase):
     def setUp(self):
@@ -161,7 +179,7 @@ class TestGetOpeningPositions(unittest.TestCase):
         pass
 
     def test_return_type(self):
-        self.assertEqual(type(get_opening_positions(2016)),list)
+        self.assertEqual(type(get_opening_positions(2016)),tuple)
 
     # def test_list_length(self):
     #     openings = get_opening_positions()
@@ -175,7 +193,8 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.emb = Share('EMB', 'Emerging Markets Bonds', 'USD', '1100', '1000.')
         self.robeco = Share('Robeco', 'Robeco Emerging Stars', 'EUR', '1.2345', '111.11')
         self.opening_positions = [self.someshare, self.emb, self.robeco]
-        self.result = process_opening_positions(self.opening_positions, '0.05', 2015, '')
+        self.result = process_opening_positions(self.opening_positions, {}, '0.05', 2015,
+                output_format)
         return self.opening_positions
 
     def test_return(self):

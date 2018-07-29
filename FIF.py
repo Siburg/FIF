@@ -388,6 +388,10 @@ def get_opening_positions(tax_year):
     # filename = askopenfilename()
     # Tk().withdraw
     # This is to remove the GUI window that was opened.
+    if filename is None:
+        print('The program does not have an input file to work with. It is now exiting!')
+        sys.exit()
+        # This is a hard exit. No need to do anything more.
 
     with open(filename, newline='') as shares_file:
         reader = csv.DictReader(shares_file)
@@ -467,16 +471,10 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        # currency_FX_rate = FX_rate(share.currency,
-        #     previous_closing_date(tax_year), 'month-end')
-        # obviously this needs work
-        currency_FX_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
-
-
-
-        # Make this a separate rounding as well.
-        NZD_value = (foreign_value / currency_FX_rate).quantize(
+        fx_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
+        NZD_value = (foreign_value / fx_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
+        # Make this a separate rounding as well.
 
         # Next statement stores the result in Share object
         share.opening_value = NZD_value
@@ -495,7 +493,7 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
             v4 = share.opening_holding, w4=outfmt['holding'].width,
             v5 = foreign_value, w5=outfmt['value'].width, p5=outfmt['value'].precision,
             v6 = share.currency, w6=outfmt['currency'].width,
-            v7 = currency_FX_rate, w7=outfmt['FX rate'].width, p7=outfmt['FX rate'].precision,
+            v7 = fx_rate, w7=outfmt['FX rate'].width, p7=outfmt['FX rate'].precision,
             v8 = NZD_value, w8=outfmt['value'].width, p8=outfmt['value'].precision))
 
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
@@ -974,7 +972,6 @@ def main():
     tax_year = 2016
     #tax_year = get_tax_year()
     shares, fx_rates = get_opening_positions(tax_year)
-    # get exchange rates
     opening_value, FDR_basic_income = process_opening_positions(
         shares, fx_rates, FAIR_DIVIDEND_RATE, tax_year, output_format)
     # Need to process trades first, to get info on shares purchased
