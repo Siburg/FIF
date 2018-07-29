@@ -478,8 +478,9 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        fx_rate = fx_rates[share.currency][previous_closing_date(tax_year)]
-        NZD_value = (foreign_value / Decimal(fx_rate)).quantize(
+        fx_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
+
+        NZD_value = (foreign_value / fx_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
 
@@ -536,11 +537,13 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
     if fx_date.month == 3 and fx_date.day == 31:
         # assume we are dealing with tax period closing date
         rate_day = fx_date
-        prompt = 'Enter closing rate'
+        prompt = 'Enter ' + currency + ' end-of-month currency rate for 31/03/' + \
+            str(fx_date.year) + ' : '
     else:
         # assume we want, and will save, an IRD mid-month rate
         rate_day = date(fx_date.year, fx_date.month, 15)
-        prompt = 'Enter midmonth rate '
+        prompt = 'Enter ' + currency + ' mid-month currency rate for 15/' + \
+            str(fx_date.month) + '/' + str(fx_date.year) + ' : '
 
     again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
     while True:
@@ -884,11 +887,17 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
                 # currency, before additional rounding below. This can only
                 # be an issue for shares with fractional holdings.
 
-                currency_FX_rate = FX_rate(share.currency, closing_date(tax_year), 'month-end')
-                # obviously this needs work
+                close_date = closing_date(tax_year)
+                if share.currency in fx_rates and close_date in fx_rates[share.currency]:
+                    fx_rate = fx_rates[share.currency][close_date]
+                else:
+                    fx_rate = get_new_fx_rate(fx_rates, share.currency, close_date)
+
+                fx_rate = Decimal(fx_rate)
+                # Converting now facilitates print output.
 
                 # Make this a separate rounding as well.
-                NZD_value = (foreign_value / currency_FX_rate).quantize(
+                NZD_value = (foreign_value / fx_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
 
                 # Next statement stores the result in Share object
@@ -903,7 +912,7 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
                     v4=share.holding, w4=outfmt['holding'].width,
                     v5=foreign_value, w5=outfmt['value'].width, p5=outfmt['value'].precision,
                     v6=share.currency, w6=outfmt['currency'].width,
-                    v7=currency_FX_rate, w7=outfmt['FX rate'].width,
+                    v7=fx_rate, w7=outfmt['FX rate'].width,
                         p7=outfmt['FX rate'].precision,
                     v8=NZD_value, w8=outfmt['value'].width, p8=outfmt['value'].precision))
 
