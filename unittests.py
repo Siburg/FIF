@@ -175,7 +175,7 @@ class TestProcessOpeningPositions(unittest.TestCase):
         self.emb = Share('EMB', 'Emerging Markets Bonds', 'USD', '1100', '1000.')
         self.robeco = Share('Robeco', 'Robeco Emerging Stars', 'EUR', '1.2345', '111.11')
         self.opening_positions = [self.someshare, self.emb, self.robeco]
-        self.result = process_opening_positions(self.opening_positions, '0.05', 2015)
+        self.result = process_opening_positions(self.opening_positions, '0.05', 2015, '')
         return self.opening_positions
 
     def test_return(self):
@@ -245,8 +245,7 @@ class TestCalcFDRBasic(unittest.TestCase):
 class TestGetTrades(unittest.TestCase):
 
     def test_return_type(self):
-        shares = [] # needs to be moved to a proper setup
-        self.assertEqual(type(get_trades(shares)),list)
+        self.assertEqual(type(get_trades()),list)
 
 
 class TestProcessTrades(unittest.TestCase):
@@ -293,8 +292,7 @@ class TestProcessTrades(unittest.TestCase):
 class TestGetDividends(unittest.TestCase):
 
     def test_return_type(self):
-        shares = [] # needs to be moved to a proper setup
-        self.assertEqual(type(get_dividends(shares)),list)
+        self.assertEqual(type(get_dividends()),list)
 
 
 class TestProcessDividends(unittest.TestCase):

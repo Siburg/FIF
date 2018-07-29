@@ -32,6 +32,9 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 import sys
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
+# Ending date of 31 March for tax periods is hard coded in functions
+# closing_date, previous_closing_date, process_opening_positiongs,
+# and process_closing_prices.
 
 
 class Share:
@@ -336,37 +339,56 @@ def get_tax_year():
     return tax_year
 
 
-def get_opening_positions():
+def previous_closing_date(tax_year):
+    return date(tax_year - 1, 3, 31)
+
+
+def closing_date(tax_year):
+    return date(tax_year, 3, 31)
+
+
+def get_opening_positions(tax_year):
     """
     Creates the list of shares with opening positions that will be used
     as starting point for all subsequent processing.
 
-    input arguments: none.
+    input arguments:
+    tax_year: the year in which the tax period ends. This must be
+        provided as an integer.
 
     return:
     opening_shares: list of Share instances with information for each
         share at the opening of the tax period.
+    fx_rates: a nested dictionary with foreign exchange rates applied
+        to the opening shares at the end of the previous tax period.
+        This dictionary can later be expanded by other functions with
+        foreign exchange rates for other dates, and possibly other
+        currencies as well.
 
     For shares that were already held at the end of the previous tax
     period, the information on opening positions must be the same as
     that of the closing positions in the previous year. For example,
     the price at opening must be the same as the closing price at the
     end of the prior period. This means the closing price on 31 March;
-    not a potential market opening price on 1 April.
+    not a potential market opening price on 1 April. Foreign exchange
+    rates must also be those for 31 March of the previous tax period;
+    not those for 1 April.
 
-    The list may also include information on shares with a zero opening
-    position. This could be useful to have starting information with
-    the code, full_name, and currency of shares that are subsequently
-    acquired during the year.
+    The opening_shares list may also include information on shares with
+    a zero opening position. This could be useful to have starting
+    information with the code, full_name, and currency of shares that
+    are subsequently acquired during the year.
 
     The function is now designed to only read such information from a
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
+    fx_rates = {}
     filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
     # filename = askopenfilename()
     # Tk().withdraw
     # This is to remove the GUI window that was opened.
+
     with open(filename, newline='') as shares_file:
         reader = csv.DictReader(shares_file)
         for row in reader:
@@ -374,18 +396,25 @@ def get_opening_positions():
                 full_name = row['full_name']
             else:
                 full_name = ''
+
             if 'currency' in row:
                 currency = row['currency']
             else:
                 currency = 'USD'
+
             opening_share = Share(row['code'], full_name, currency,
                 row['holding'], row['closing_price'])
             opening_positions.append(opening_share)
 
-    return opening_positions
+            if 'fx_rate' in row:
+                if currency not in fx_rates:
+                    day_with_fx_rate = {previous_closing_date(tax_year) : row['fx_rate']}
+                    fx_rates[currency] = day_with_fx_rate
+
+    return opening_positions, fx_rates
 
 
-def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outfmt):
+def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_year, outfmt):
     """
     Calculates NZD value of each share held at opening, sets that value
     for the share, and calculates total NZD value across shares. Also
@@ -411,8 +440,6 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
     """
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
-    # Tax year end of 31 March is hard coded below
-    previous_closing_date = date(tax_year - 1, 3, 31)
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
@@ -440,12 +467,15 @@ def process_opening_positions(opening_shares, fair_dividend_rate, tax_year, outf
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        currency_FX_rate = FX_rate(share.currency,
-            previous_closing_date, 'month-end')
+        # currency_FX_rate = FX_rate(share.currency,
+        #     previous_closing_date(tax_year), 'month-end')
         # obviously this needs work
+        currency_FX_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
+
+
 
         # Make this a separate rounding as well.
-        NZD_value = (foreign_value * currency_FX_rate).quantize(
+        NZD_value = (foreign_value / currency_FX_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
 
         # Next statement stores the result in Share object
@@ -573,7 +603,7 @@ def process_trades(shares, trades, outfmt):
             currency_FX_rate = FX_rate(share.currency, trade.date_time, 'mid-month')
             # obviously this needs work
 
-            NZD_value = (trade.charge * currency_FX_rate).quantize(
+            NZD_value = (trade.charge / currency_FX_rate).quantize(
                 Decimal('0.01'), ROUND_HALF_UP)
 
             # This is why there is an outer loop. If a separate
@@ -670,7 +700,7 @@ def process_dividends(shares, dividends, outfmt):
             currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
             # obviously this needs work
 
-            NZD_value = (dividend.gross_paid * currency_FX_rate).quantize(
+            NZD_value = (dividend.gross_paid / currency_FX_rate).quantize(
                 Decimal('0.01'), ROUND_HALF_UP)
 
             # This is why there is an outer loop. If a separate
@@ -755,8 +785,6 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
 
     """
     total_closing_value = Decimal('0.00')
-    # Tax year ending on 31 March is hard coded below
-    closing_date = date(tax_year, 3, 31)
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
@@ -796,11 +824,11 @@ def process_closing_prices(shares, closing_prices, tax_year, outfmt):
                 # currency, before additional rounding below. This can only
                 # be an issue for shares with fractional holdings.
 
-                currency_FX_rate = FX_rate(share.currency, closing_date, 'month-end')
+                currency_FX_rate = FX_rate(share.currency, closing_date(tax_year), 'month-end')
                 # obviously this needs work
 
                 # Make this a separate rounding as well.
-                NZD_value = (foreign_value * currency_FX_rate).quantize(
+                NZD_value = (foreign_value / currency_FX_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
 
                 # Next statement stores the result in Share object
@@ -884,7 +912,7 @@ def calc_QSA(shares, trades, dividends):
     return quick_sale_adjustments
 
 
-def FX_rate(currency, date, conversion_method):
+def FX_rate(currency, fx_date, conversion_method):
     """
 
     :param currency:
@@ -892,6 +920,7 @@ def FX_rate(currency, date, conversion_method):
     :param conversion_method:
     :return:
     """
+
     exchange_rate = Decimal('1.0000')
     return exchange_rate
 
@@ -944,10 +973,10 @@ def main():
 
     tax_year = 2016
     #tax_year = get_tax_year()
-    shares = get_opening_positions()
+    shares, fx_rates = get_opening_positions(tax_year)
     # get exchange rates
     opening_value, FDR_basic_income = process_opening_positions(
-        shares, FAIR_DIVIDEND_RATE, tax_year, output_format)
+        shares, fx_rates, FAIR_DIVIDEND_RATE, tax_year, output_format)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
     trades = get_trades()
