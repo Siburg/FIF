@@ -15,10 +15,8 @@ version 0.2
 No license (yet), but program is intended for public domain and may
 be considered open source
 
-Note: current version does not yet deal properly with exchange rates.
-It does not yet have adequate functionality for dates and times.
-It completely ignores, and will not work properly, with transactions
-such as share splits or share reorganisations.
+Note: current version ignores, and will not work properly, with
+transactions such as share splits or share reorganisations.
 """
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
@@ -356,7 +354,7 @@ def get_opening_positions(tax_year):
     tax_year: the year in which the tax period ends. This must be
         provided as an integer.
 
-    return:
+    return: (tuple with)
     opening_shares: list of Share instances with information for each
         share at the opening of the tax period.
     fx_rates: a nested dictionary with foreign exchange rates applied
@@ -378,6 +376,11 @@ def get_opening_positions(tax_year):
     a zero opening position. This could be useful to have starting
     information with the code, full_name, and currency of shares that
     are subsequently acquired during the year.
+
+    All foreign exchange rates, here and in any other function, must be
+    compatible with those used by the IRD, if not directly obtained
+    from them. This means foreign values are divided by the fx_rates
+    to arrive at NZD values.
 
     The function is now designed to only read such information from a
     csv file. It may be extended with additional input methods.
@@ -412,6 +415,8 @@ def get_opening_positions(tax_year):
 
             if 'fx_rate' in row:
                 if currency not in fx_rates:
+                    # Because fx_rates starts empty there is no need to
+                    # check or determine date(s) at this stage.
                     day_with_fx_rate = {previous_closing_date(tax_year) : row['fx_rate']}
                     fx_rates[currency] = day_with_fx_rate
 
@@ -429,6 +434,8 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
     input arguments:
     opening_shares: list of shares, as obtained from
         get_opening_positions (i.e. without any updates from trades)
+    fx_rates: a nested dictionary with foreign exchange rates applied
+        to the opening shares at the end of the previous tax period.
     fair_dividend_rate: the statutory Fair Dividend Rate. This should
         be provided as a string or a Decimal.
     tax_year: the year in which the tax period ends. This must be
@@ -471,8 +478,8 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        fx_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
-        NZD_value = (foreign_value / fx_rate).quantize(
+        fx_rate = fx_rates[share.currency][previous_closing_date(tax_year)]
+        NZD_value = (foreign_value / Decimal(fx_rate)).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
 
@@ -502,6 +509,61 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         v2 = total_opening_value, w2 = outfmt['value'].width, p2 = outfmt['value'].precision))
 
     return total_opening_value, FDR_basic_income
+
+
+def get_new_fx_rate(fx_rates, currency, fx_date):
+    """
+    Obtains a foreign exchange rate for the currency and day specified
+    in the argument list. The obtained rate is then added to the
+    dictionary with fx_rates.
+
+    input arguments:
+    fx_rates: a nested dictionary with foreign exchange rates by
+        currency and by date (as a date object).
+    currency: the currency for which we need the exchange rate.
+    fx_date: the date for which we need the exchange rate. This must be
+        passed in the form of a date or datetime object.
+
+    return: the desired foreign exchange rate, as a string.
+
+    other data changes (to mutable objects in arguments):
+    fx_rates is updated with the new fx_rate.
+
+    This function also allows the user to enter "quit", instead of an
+    exchange rate. If the user does that the program will immediately
+    do a hard exit.
+    """
+    if fx_date.month == 3 and fx_date.day == 31:
+        # assume we are dealing with tax period closing date
+        rate_day = fx_date
+        prompt = 'Enter closing rate'
+    else:
+        # assume we want, and will save, an IRD mid-month rate
+        rate_day = date(fx_date.year, fx_date.month, 15)
+        prompt = 'Enter midmonth rate '
+
+    again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
+    while True:
+        try:
+            fx_rate = input(prompt)
+            if fx_rate == 'quit':
+                print('Program is now exiting')
+                sys.exit()
+                # This is a hard exit. No need to do anything more.
+
+            check_for_float = float(fx_rate)
+            # This statement only serves to raise a ValueError if it
+            # fails. Also consider adding a check to limit entires to
+            # 4 decimals
+
+            break   # out of the loop, with a valid value, when here.
+
+        except ValueError:
+            prompt = 'That is not a valid entry.' + again
+
+    fx_rates[currency][rate_day] = fx_rate
+
+    return fx_rate
 
 
 def get_trades():
@@ -775,7 +837,7 @@ def get_closing_prices(shares):
     return closing_prices
 
 
-def process_closing_prices(shares, closing_prices, tax_year, outfmt):
+def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
     """
 
     :param shares:
@@ -981,7 +1043,8 @@ def main():
     dividends = get_dividends()
     gross_income_from_dividends = process_dividends(shares, dividends, output_format)
     closing_prices = get_closing_prices(shares)
-    closing_value = process_closing_prices(shares, closing_prices, tax_year, output_format)
+    closing_value = process_closing_prices(shares, closing_prices, fx_rates,
+        tax_year, output_format)
 # uncomment next when ready to actually save
 #    save_closing_positions(shares)
 
