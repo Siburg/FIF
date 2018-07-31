@@ -30,23 +30,23 @@ from tkinter.filedialog import askopenfilename, asksaveasfilename
 import sys
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
-# Ending date of 31 March for tax periods is hard coded in functions
-# closing_date, previous_closing_date, process_opening_positiongs,
-# and process_closing_prices.
+# Ending date of 31 March for tax periods is hard coded throughout.
+# (Search for   31   if that needs changing.)
 
 
 class Share:
     """
     Holds information on shares and shareholdings.
-    Input variables:
+
+    Input arguments:
     code: a code, abbreviation or symbol to identify the share issuer.
     full_name: the name or description of the share issuer and/or class.
     currency: currency of the share prices.
     opening_holding : number of shares held at start of the tax period.
     opening_price: price per share at start of the tax period (in its
-    native currency).
+        native currency).
 
-    Other instance variables that are available:
+    Other attributes that are available:
     holding: current number of shares held, as calculated from other
         inputs. At the end of the tax period this should be its closing
         holding. Note that this can include fractional shares.
@@ -73,6 +73,7 @@ class Share:
     Holding class, or have a list of shareholdings over time inside the
     class.
     """
+
     def __init__(self, code, full_name='', currency='USD', opening_holding='0',
                  opening_price='0.00'):
         """
@@ -81,6 +82,7 @@ class Share:
         another default currency, e.g. AUD.
 
         input arguments: as per descriptions for the class.
+
         return: None
         """
         self.code = code
@@ -115,6 +117,7 @@ class Share:
         of information. The program may not need this at all.
 
         input arguments: none.
+
         return: None.
         """
         self.opening_holding = Decimal(self.holding)
@@ -157,7 +160,7 @@ class Trade:
     Could conceivably be replaced with a dict, or a namedtuple, or
     another type of object.
 
-    Input variables:
+    Input arguments:
     code: the code, abbreviation or symbol to identify the share issuer.
         This can match the code of a share that is part of opening
         holding, or can be for a new share purchased during the tax
@@ -177,7 +180,7 @@ class Trade:
         share price (for now; otherwise we must allow a separately
         identified currency for the costs component of a trade).
 
-    Other instance variables that are available:
+    Other attributes that are available:
     charge: the total costs of an acquisition including trade_costs;
         or the net proceeds from a divestment after deducting trade
         costs (which will almost always be a negative value, unless
@@ -190,12 +193,14 @@ class Trade:
     already in the form of Decimals), so they can be accurately
     converted to Decimals.
     """
-    def __init__(self, code, date_time, number_of_shares, share_price, trade_costs = '0.00'):
+
+    def __init__(self, code, date_time, number_of_shares, share_price, trade_costs='0.00'):
         """
         Constructor function. trade_costs have a default value of
         Decimal(0). charge is calculated from the other inputs.
 
         input arguments: as per descriptions for the class.
+
         return: None
         """
         self.code = code
@@ -219,7 +224,7 @@ class Dividend:
     Could conceivably be replaced with a dict, or a namedtuple, or
     another type of object.
 
-    Input variables:
+    Input arguments:
     code: a code, abbreviation or symbol to identify the share.
     date: the payment date for the dividend (not the declaration date
         or other type of date). This should be in the form of a
@@ -230,7 +235,7 @@ class Dividend:
         other taxes, in its native currency, on all eligible shares for
         the dividend.
 
-    Other instance variables that are available:
+    Other attributes that are available:
     eligible_shares: the number of shares for which the dividend was
         paid; calculated as gross_paid / per_share. Note that this
         can be different from the number of shares held on the payment
@@ -247,12 +252,14 @@ class Dividend:
     be tricky because dates for tax paid may not match up with dates
     for dividends paid.
     """
+
     def __init__(self, code, date, per_share, gross_paid):
         """
         Constructor function. eligible_shares is calculated from the
         other inputs.
 
         input arguments: as per descriptions for the class.
+
         return: None
         """
         self.code = code
@@ -291,6 +298,7 @@ def get_tax_year():
     Obtains the tax year, i.e. the year in which the tax period ends.
 
     input arguments: none.
+
     return: the tax year, expressed as an integer
 
     The tax year is now obtained from manual user input, following a
@@ -305,6 +313,7 @@ def get_tax_year():
     """
     prompt = 'Enter the year in which the income tax period ends: '
     again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
+
     while True:
         try:
             user_input = input(prompt)
@@ -492,7 +501,7 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
             Decimal('0.01'), rounding=ROUND_HALF_UP)
         # It appears that FIF needs to be calculated for each security.
         # That's why final rounding is done per share, after
-        # multiplying eachshare with the fair_dividend_rate.
+        # multiplying each share with the fair_dividend_rate.
 
         print(share_format_string.format(
             v1 = share.code, w1 = outfmt['code'].width, p1 = outfmt['code'].precision,
@@ -535,17 +544,23 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
     do a hard exit.
     """
     if fx_date.month == 3 and fx_date.day == 31:
-        # assume we are dealing with tax period closing date
-        rate_day = fx_date
-        prompt = 'Enter ' + currency + ' end-of-month currency rate for 31/03/' + \
+        # Assume we are dealing with tax period closing date. It is
+        # still possible to enter a rolling average rate for March
+        # if desired. This could lead to the same rolling average rate
+        # being entered twice -- for 15 March and for 31 March -- but
+        # so be it.
+        rate_date = date(fx_date)   # In case it's a datetime object.
+        prompt = 'Enter ' + currency + ' currency rate for 31/03/' + \
             str(fx_date.year) + ' : '
     else:
-        # assume we want, and will save, an IRD mid-month rate
-        rate_day = date(fx_date.year, fx_date.month, 15)
-        prompt = 'Enter ' + currency + ' mid-month currency rate for 15/' + \
+        # Assume we want, and will save, an IRD mid-month rate. This
+        # could be a rolling average rate.
+        rate_date = date(fx_date.year, fx_date.month, 15)
+        prompt = 'Enter ' + currency + ' currency rate for 15/' + \
             str(fx_date.month) + '/' + str(fx_date.year) + ' : '
 
     again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
+
     while True:
         try:
             fx_rate = input(prompt)
@@ -556,7 +571,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
 
             check_for_float = float(fx_rate)
             # This statement only serves to raise a ValueError if it
-            # fails. Also consider adding a check to limit entires to
+            # fails. Also consider adding a check to limit entries to
             # 4 decimals
 
             break   # out of the loop, with a valid value, when here.
@@ -564,9 +579,38 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
         except ValueError:
             prompt = 'That is not a valid entry.' + again
 
-    fx_rates[currency][rate_day] = fx_rate
+    fx_rates[currency][rate_date] = fx_rate
 
     return fx_rate
+
+
+def get_new_share_currency_and_full_name(trade):
+    """
+
+    :param trade:
+    :return:
+    """
+
+    prompt = ('{0} is for a share that is not yet in the system.\n' +
+              'Enter the currency code in which that share trades (e.g. USD): ').format(
+        repr(trade))
+    currency = input(prompt)
+    # Next line is a temporary fix,
+    # currencies may need to be an argument
+    # perhaps check currency key in fx_rates, after passing that as
+    # argument
+    currency_list = ['USD', 'EUR', 'AUD', 'GBP']
+    while currency not in currency_list:
+        print('The system does not have any information for currency code ' + currency)
+        currency = input('Please enter a valid code for an existing currency')
+
+    full_name = input('Enter the full share name or description for ' +
+                      trade.code + ' : ')
+    # Consider adding a while loop to ensure we get a string value.
+    # Also consider if we allow a blank return.
+    # Also consider a sentinel value such as "quit" allowing the user
+    # exit the program altogether.
+    return full_name, currency
 
 
 def get_trades():
@@ -625,7 +669,7 @@ def process_trades(shares, trades, outfmt):
 
     # First, ensure there are share instances for every trade
     for trade in trades:
-        # check if we do not have a matching share code
+        # Check if we do not have a matching share code.
         # consider changing the if to a while, in order to ensure
         # we can never process unmatching trades. That may require
         # some revamping of the code in such a while loop.
@@ -992,33 +1036,6 @@ def FX_rate(currency, fx_date, conversion_method):
 
     exchange_rate = Decimal('1.0000')
     return exchange_rate
-
-
-def get_new_share_currency_and_full_name(trade):
-    """
-
-    :param trade:
-    :return:
-    """
-
-    prompt = ('{0} is for a share that is not yet in the system.\n' +
-              'Enter the currency code in which that share trades (e.g. USD): ').format(
-        repr(trade))
-    currency = input(prompt)
-    # Next line is a temporary fix,
-    # currencies may need to be an argument
-    currency_list = ['USD', 'EUR', 'AUD', 'GBP']
-    while currency not in currency_list:
-        print('The system does not have any information for currency code ' + currency)
-        currency = input('Please enter a valid code for an existing currency')
-
-    full_name = input('Enter the full share name or description for ' +
-                      trade.code + ' : ')
-    # Consider adding a while loop to ensure we get a string value.
-    # Also consider if we allow a blank return.
-    # Also consider a sentinel value such as "quit" allowing the user
-    # exit the program altogether.
-    return full_name, currency
 
 
 def main():
