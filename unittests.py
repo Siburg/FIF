@@ -169,6 +169,7 @@ class TestTrade(unittest.TestCase):
         self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
 
 
+@unittest.skip
 class TestGetOpeningPositions(unittest.TestCase):
 
     def setUp(self):
@@ -186,6 +187,7 @@ class TestGetOpeningPositions(unittest.TestCase):
     #     self.assertEqual(len(openings), 2)
 
 
+@unittest.skip
 class TestProcessOpeningPositions(unittest.TestCase):
 
     def setUp(self):
@@ -267,6 +269,7 @@ class TestGetTrades(unittest.TestCase):
         self.assertEqual(type(get_trades()),list)
 
 
+@unittest.skip
 class TestProcessTrades(unittest.TestCase):
 
     def setUp(self):
@@ -314,6 +317,7 @@ class TestGetDividends(unittest.TestCase):
         self.assertEqual(type(get_dividends()),list)
 
 
+@unittest.skip
 class TestProcessDividends(unittest.TestCase):
 
     def setUp(self):
@@ -338,6 +342,7 @@ class TestProcessDividends(unittest.TestCase):
     # by test above
 
 
+@unittest.skip
 class TestProcessClosingPrices(unittest.TestCase):
 
     def setUp(self):
@@ -406,7 +411,7 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
         self.assertEqual(values[1], 'USD')
 
 
-#@unittest.skip
+@unittest.skip
 class TestMain(unittest.TestCase):
 
     def setUp(self):

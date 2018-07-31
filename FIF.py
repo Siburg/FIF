@@ -532,7 +532,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
         currency and by date (as a date object).
     currency: the currency for which we need the exchange rate.
     fx_date: the date for which we need the exchange rate. This must be
-        passed in the form of a date or datetime object.
+        passed in the form of a date object.
 
     return: the desired foreign exchange rate, as a string.
 
@@ -549,7 +549,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
         # if desired. This could lead to the same rolling average rate
         # being entered twice -- for 15 March and for 31 March -- but
         # so be it.
-        rate_date = date(fx_date)   # In case it's a datetime object.
+        rate_date = fx_date
         prompt = 'Enter ' + currency + ' currency rate for 31/03/' + \
             str(fx_date.year) + ' : '
     else:
