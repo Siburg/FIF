@@ -1039,6 +1039,9 @@ def FX_rate(currency, fx_date, conversion_method):
 
 
 def main():
+    # Starts with defining the output formatting. This could be moved
+    # into a separate function, but that does not really serve any
+    # purpose (although it may look cleaner).
     item_format = namedtuple('item_output_format', 'header, width, precision')
     output_format = {}
     output_format['code'] = item_format('share code', 16, 16)
@@ -1057,11 +1060,14 @@ def main():
     output_format['dividend'] = item_format('gross dividend', 22, 999)
     output_format['total width'] = 112
 
-    tax_year = 2016
+    tax_year = 2016  # hard coded for testing
     #tax_year = get_tax_year()
     shares, fx_rates = get_opening_positions(tax_year)
     opening_value, FDR_basic_income = process_opening_positions(
         shares, fx_rates, FAIR_DIVIDEND_RATE, tax_year, output_format)
+    # It may be useful to first get info on more fx_rates. That may
+    # be input of IRD schedules, or rates saved during a previous run.
+    # get_more_fx_rates(fx_rates)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
     trades = get_trades()
@@ -1073,6 +1079,7 @@ def main():
         tax_year, output_format)
 # uncomment next when ready to actually save
 #    save_closing_positions(shares)
+#   save_fx_rates(fx_rates) could be useful as well
 
     # move next to a function that includes printing of CV results
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)

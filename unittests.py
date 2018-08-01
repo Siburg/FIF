@@ -170,6 +170,22 @@ class TestTrade(unittest.TestCase):
 
 
 @unittest.skip
+class TestGetTaxYear(unittest.TestCase):
+    pass
+
+
+#@unittest.skip
+class TestGetClosingDateFunctions(unittest.TestCase):
+
+    def test_return_type(self):
+        previous_result = previous_closing_date(2016)
+        self.assertTrue(isinstance(previous_result, date))
+
+        result = closing_date(2016)
+        self.assertTrue(isinstance(result, date))
+
+
+@unittest.skip
 class TestGetOpeningPositions(unittest.TestCase):
 
     def setUp(self):
