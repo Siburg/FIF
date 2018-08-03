@@ -435,12 +435,12 @@ def get_opening_positions(tax_year):
                     row['holding'], row['closing_price'])
             opening_positions.append(opening_share)
 
-            if 'fx_rate' in row:
-                if currency not in fx_rates:
-                    # Because fx_rates starts empty there is no need to
-                    # check or determine date(s) at this stage.
-                    day_with_fx_rate = {previous_closing_date(tax_year): row['fx_rate']}
-                    fx_rates[currency] = day_with_fx_rate
+            # if 'fx_rate' in row:
+            #     if currency not in fx_rates:
+            #         # Because fx_rates starts empty there is no need to
+            #         # check or determine date(s) at this stage.
+            #         day_with_fx_rate = {previous_closing_date(tax_year): row['fx_rate']}
+            #         fx_rates[currency] = day_with_fx_rate
 
     return opening_positions
 

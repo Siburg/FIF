@@ -174,6 +174,12 @@ class TestGetTaxYear(unittest.TestCase):
     pass
 
 
+class TestGetFXRates(unittest.TestCase):
+    def test_fx_rates(self):
+        fx_rates = get_fx_rates()
+        self.assertTrue(isinstance(fx_rates,dict))
+
+
 #@unittest.skip
 class TestGetClosingDateFunctions(unittest.TestCase):
 
@@ -189,22 +195,23 @@ class TestGetClosingDateFunctions(unittest.TestCase):
         self.assertEqual(result.year,2016)
 
 
-@unittest.skip
+#@unittest.skip
 class TestGetOpeningPositions(unittest.TestCase):
 
     def setUp(self):
-        # self.robeco = Share('Robeco', '1.2345', '111.11', '111.22', 'EUR')
-        # self.emb = Share('EMB', '11', '100.', '110.')
+        # self.robeco = Share('Robeco', 'robeco', 'EUR', '1.2345', '111.11')
+        # self.emb = Share('EMB', 'emb', 'USD', '11', '100.')
         # self.opening_positions = [self.robeco, self.emb]
-        # need to add full_name if we uncomment above
-        pass
+        # need to provide mock input to test with
+        self.result = get_opening_positions(2016)
 
     def test_return_type(self):
-        self.assertEqual(type(get_opening_positions(2016)),tuple)
+        self.assertTrue(isinstance(self.result,list))
+        if len(self.result) > 0:
+            self.assertTrue(isinstance(self.result[0],Share))
 
-    # def test_list_length(self):
-    #     openings = get_opening_positions()
-    #     self.assertEqual(len(openings), 2)
+    def test_list_length(self):
+        self.assertEqual(len(self.result), 13) # that's for current hard-coded file
 
 
 @unittest.skip
