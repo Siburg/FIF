@@ -177,12 +177,16 @@ class TestGetTaxYear(unittest.TestCase):
 #@unittest.skip
 class TestGetClosingDateFunctions(unittest.TestCase):
 
-    def test_return_type(self):
+    def test_returns(self):
         previous_result = previous_closing_date(2016)
         self.assertTrue(isinstance(previous_result, date))
+        self.assertEqual(previous_result.month,3)
+        self.assertEqual(previous_result.day,31)
+        self.assertEqual(previous_result.year,2015)
 
         result = closing_date(2016)
         self.assertTrue(isinstance(result, date))
+        self.assertEqual(result.year,2016)
 
 
 @unittest.skip

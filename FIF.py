@@ -25,6 +25,7 @@ from collections import namedtuple
 from operator import attrgetter
 import csv
 # import json
+import pickle
 from tkinter import filedialog, Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import sys
@@ -354,6 +355,18 @@ def closing_date(tax_year):
     return date(tax_year, 3, 31)
 
 
+def get_fx_rates():
+    """
+
+    :rtype: object
+    :param fx_rates:
+    :return:
+    """
+    with open('saved_fx_rates.pickle', 'rb') as fx_rates_save_file:
+        fx_rates = pickle.load(fx_rates_save_file)
+    return fx_rates
+
+
 def get_opening_positions(tax_year):
     """
     Creates the list of shares with opening positions that will be used
@@ -419,17 +432,17 @@ def get_opening_positions(tax_year):
                 currency = 'USD'
 
             opening_share = Share(row['code'], full_name, currency,
-                row['holding'], row['closing_price'])
+                    row['holding'], row['closing_price'])
             opening_positions.append(opening_share)
 
             if 'fx_rate' in row:
                 if currency not in fx_rates:
                     # Because fx_rates starts empty there is no need to
                     # check or determine date(s) at this stage.
-                    day_with_fx_rate = {previous_closing_date(tax_year) : row['fx_rate']}
+                    day_with_fx_rate = {previous_closing_date(tax_year): row['fx_rate']}
                     fx_rates[currency] = day_with_fx_rate
 
-    return opening_positions, fx_rates
+    return opening_positions
 
 
 def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_year, outfmt):
@@ -461,7 +474,7 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
     total_opening_value = Decimal('0.00')
     FDR_basic_income = Decimal('0.00')
 
-    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
+    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}' + \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
     share_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},.{p5}f}' + '{v6:>{w6}}' + '{v7:>{w7},.{p7}f}' + \
@@ -659,7 +672,7 @@ def process_trades(shares, trades, outfmt):
     """
     total_cost_of_trades = Decimal('0.00')
     any_quick_sale_adjustment = False
-    trades.sort(key = attrgetter('date_time'))
+    trades.sort(key=attrgetter('date_time'))
     # Sorting the trades by date and time is necessary to work out the
     # need for a quick sale adjustment, and to properly calculate such
     # an adjustment later if needed.
@@ -784,7 +797,7 @@ def process_dividends(shares, dividends, outfmt):
     """
     total_income_from_dividends = Decimal('0.00')
 
-    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
+    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}' + \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
     dividend_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},.{p5}f}' + '{v6:>{w6}}' + '{v7:>{w7},.{p7}f}' + \
@@ -874,7 +887,7 @@ def get_closing_prices(shares):
     with open(filename, newline='') as closing_prices_file:
         reader = csv.DictReader(closing_prices_file)
         for row in reader:
-            row_info = closing_price_info(code = row['code'], price = row['price'])
+            row_info = closing_price_info(code=row['code'], price=row['price'])
             closing_prices.append(row_info)
 
     # Consider adding functionality to check that we have a closing
@@ -893,7 +906,7 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
     """
     total_closing_value = Decimal('0.00')
 
-    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
+    header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}' + \
         '{v5:>{w5}}' + '{v6:{w6}}' + '{v7:{w7}}' + '{v8:>{w8}}'
     share_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},}' + \
         '{v4:>{w4},}' + '{v5:>{w5},.{p5}f}' + '{v6:>{w6}}' + '{v7:>{w7},.{p7}f}' + \
@@ -903,7 +916,7 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
     # show that in print (or not).
     print('\nClosing positions for 31 Mar {}'.format(tax_year))
     print(header_format_string.format(
-        v1 = outfmt['code'].header, w1 = outfmt['code'].width,
+        v1=outfmt['code'].header, w1=outfmt['code'].width,
         v2=outfmt['full_name'].header, w2=outfmt['full_name'].width,
         v3=outfmt['price'].header, w3=outfmt['price'].width,
         v4='shares held', w4=outfmt['holding'].width,
@@ -979,7 +992,6 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
                     p7=outfmt['FX rate'].precision,
                 v8=0.0, w8=outfmt['value'].width, p8=outfmt['value'].precision))
 
-
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
     print('{v1:{w1}}{v2:>{w2},.{p2}f}\n'.format(
         v1 = 'total closing value', w1 = outfmt['total width'] - outfmt['value'].width,
@@ -1038,31 +1050,42 @@ def FX_rate(currency, fx_date, conversion_method):
     return exchange_rate
 
 
+def save_fx_rates(fx_rates):
+    """
+
+    :rtype: object
+    :param fx_rates:
+    :return:
+    """
+    with open('saved_fx_rates.pickle', 'wb') as fx_rates_save_file:
+        pickle.dump(fx_rates, fx_rates_save_file)
+    return
+
+
 def main():
     # Starts with defining the output formatting. This could be moved
     # into a separate function, but that does not really serve any
     # purpose (although it may look cleaner).
     item_format = namedtuple('item_output_format', 'header, width, precision')
-    output_format = {}
-    output_format['code'] = item_format('share code', 16, 16)
-    output_format['full_name'] = item_format('name / description', 27, 27)
-    output_format['price'] = item_format('price', 10, 999)
-    output_format['holding'] = item_format('shares', 13, 999)
-    output_format['value'] = item_format('value', 16, 2)
-    # Next 2 lines are a bit of kludge to combine " currency rate" in
-    # the header. We also want a space after printing the previous
-    # value, so that is why we are right-aligning the 3-letter
-    # currency in a field with a width of 4.
-    output_format['currency'] = item_format(' cur', 4, 4)
-    output_format['FX rate'] = item_format('rency rate', 10, 4)
-    output_format['fees'] = item_format('fees', 12, 2)
-    output_format['date'] = item_format(' date ( & time)', 15, 15)
-    output_format['dividend'] = item_format('gross dividend', 22, 999)
-    output_format['total width'] = 112
+    output_format = {'code': item_format('share code', 16, 16),
+                     'full_name': item_format('name / description', 27, 27),
+                     'price': item_format('price', 10, 999),
+                     'holding': item_format('shares', 13, 999),
+                     # Next 2 lines are a bit of kludge to combine
+                     # " currency rate" in the header. We also want a
+                     # space after printing the previous value, so that
+                     # is why we are  right-aligning the 3-letter
+                     # currency in a field with a width of 4.
+                     'value': item_format('value', 16, 2), 'currency': item_format(' cur', 4, 4),
+                     'FX rate': item_format('rency rate', 10, 4),
+                     'fees': item_format('fees', 12, 2),
+                     'date': item_format(' date ( & time)', 15, 15),
+                     'dividend': item_format('gross dividend', 22, 999), 'total width': 112}
 
     tax_year = 2016  # hard coded for testing
     #tax_year = get_tax_year()
-    shares, fx_rates = get_opening_positions(tax_year)
+    fx_rates = get_fx_rates()
+    shares = get_opening_positions(tax_year)
     opening_value, FDR_basic_income = process_opening_positions(
         shares, fx_rates, FAIR_DIVIDEND_RATE, tax_year, output_format)
     # It may be useful to first get info on more fx_rates. That may
@@ -1076,10 +1099,10 @@ def main():
     gross_income_from_dividends = process_dividends(shares, dividends, output_format)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, fx_rates,
-        tax_year, output_format)
+            tax_year, output_format)
 # uncomment next when ready to actually save
 #    save_closing_positions(shares)
-#   save_fx_rates(fx_rates) could be useful as well
+    save_fx_rates(fx_rates)
 
     # move next to a function that includes printing of CV results
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
