@@ -380,14 +380,14 @@ def closing_date(tax_year):
     return date(tax_year, 3, 31)
 
 
-def get_fx_rates():
+def get_fx_rates(filename='saved_fx_rates.pickle'):
     """
 
     :rtype: object
     :param fx_rates:
     :return:
     """
-    with open('saved_fx_rates.pickle', 'rb') as fx_rates_save_file:
+    with open(filename, 'rb') as fx_rates_save_file:
         fx_rates = pickle.load(fx_rates_save_file)
     return fx_rates
 
@@ -622,7 +622,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
     return fx_rate
 
 
-def get_new_share_currency_and_full_name(trade):
+def get_new_share_currency_and_full_name(trade, fx_rates):
     """
 
     :param trade:
@@ -633,14 +633,10 @@ def get_new_share_currency_and_full_name(trade):
               'Enter the currency code in which that share trades (e.g. USD): ').format(
         repr(trade))
     currency = input(prompt)
-    # Next line is a temporary fix,
-    # currencies may need to be an argument
-    # perhaps check currency key in fx_rates, after passing that as
-    # argument
-    currency_list = ['USD', 'EUR', 'AUD', 'GBP']
-    while currency not in currency_list:
+
+    while currency not in fx_rates:
         print('The system does not have any information for currency code ' + currency)
-        currency = input('Please enter a valid code for an existing currency')
+        currency = input('Please enter a valid code (from ISO4217) for an existing currency')
 
     full_name = input('Enter the full share name or description for ' +
                       trade.code + ' : ')
@@ -689,7 +685,7 @@ def get_trades():
     return trades
 
 
-def process_trades(shares, trades, outfmt):
+def process_trades(shares, trades, fx_rates, outfmt):
     """
 
     :param trades:
@@ -712,7 +708,7 @@ def process_trades(shares, trades, outfmt):
         # we can never process unmatching trades. That may require
         # some revamping of the code in such a while loop.
         if not any(share.code == trade.code for share in shares):
-            full_name, currency = get_new_share_currency_and_full_name(trade)
+            full_name, currency = get_new_share_currency_and_full_name(trade, fx_rates)
             new_share = Share(trade.code, full_name, currency)
             shares.append(new_share)
 
@@ -814,7 +810,7 @@ def get_dividends():
     return dividends
 
 
-def process_dividends(shares, dividends, outfmt):
+def process_dividends(shares, dividends, fx_rates, outfmt):
     """
 
     :param dividends:
@@ -1075,14 +1071,14 @@ def FX_rate(currency, fx_date, conversion_method):
     return exchange_rate
 
 
-def save_fx_rates(fx_rates):
+def save_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
     """
 
     :rtype: object
     :param fx_rates:
     :return:
     """
-    with open('saved_fx_rates.pickle', 'wb') as fx_rates_save_file:
+    with open(filename, 'wb') as fx_rates_save_file:
         pickle.dump(fx_rates, fx_rates_save_file)
     return
 
@@ -1119,9 +1115,10 @@ def main():
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
     trades = get_trades()
-    cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades, output_format)
+    cost_of_trades, any_quick_sale_adjustment = process_trades(
+            shares, trades, fx_rates, output_format)
     dividends = get_dividends()
-    gross_income_from_dividends = process_dividends(shares, dividends, output_format)
+    gross_income_from_dividends = process_dividends(shares, dividends, fx_rates, output_format)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, fx_rates,
             tax_year, output_format)

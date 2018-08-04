@@ -10,24 +10,6 @@ from collections import namedtuple
 from datetime import date
 import sys
 
-item_format = namedtuple('item_output_format', 'header, width, precision')
-output_format = {}
-output_format['code'] = item_format('share code', 16, 16)
-output_format['full_name'] = item_format('name / description', 27, 27)
-output_format['price'] = item_format('price', 10, 999)
-output_format['holding'] = item_format('shares', 13, 999)
-output_format['value'] = item_format('value', 16, 2)
-# Next 2 lines are a bit of kludge to combine " currency rate" in
-# the header. We also want a space after printing the previous
-# value, so that is why we are right-aligning the 3-letter
-# currency in a field with a width of 4.
-output_format['currency'] = item_format(' cur', 4, 4)
-output_format['FX rate'] = item_format('rency rate', 10, 4)
-output_format['fees'] = item_format('fees', 12, 2)
-output_format['date'] = item_format(' date ( & time)', 15, 15)
-output_format['dividend'] = item_format('gross dividend', 22, 999)
-output_format['total width'] = 112
-
 
 class TestShare(unittest.TestCase):
     def setUp(self):
@@ -172,6 +154,41 @@ class TestTrade(unittest.TestCase):
         self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
 
 
+item_format = namedtuple('item_output_format', 'header, width, precision')
+output_format = {}
+output_format['code'] = item_format('share code', 16, 16)
+output_format['full_name'] = item_format('name / description', 27, 27)
+output_format['price'] = item_format('price', 10, 999)
+output_format['holding'] = item_format('shares', 13, 999)
+output_format['value'] = item_format('value', 16, 2)
+# Next 2 lines are a bit of kludge to combine " currency rate" in
+# the header. We also want a space after printing the previous
+# value, so that is why we are right-aligning the 3-letter
+# currency in a field with a width of 4.
+output_format['currency'] = item_format(' cur', 4, 4)
+output_format['FX rate'] = item_format('rency rate', 10, 4)
+output_format['fees'] = item_format('fees', 12, 2)
+output_format['date'] = item_format(' date ( & time)', 15, 15)
+output_format['dividend'] = item_format('gross dividend', 22, 999)
+output_format['total width'] = 112
+
+
+class TestGetFXRates(unittest.TestCase):
+    def test_fx_rates(self):
+        fx_rates = get_fx_rates()
+        self.assertIsInstance(fx_rates,dict)
+        # Next test assumes that any non-empty fx_rates will include USD
+        if fx_rates.__len__() > 0:
+            self.assertIn('USD', fx_rates)
+            if not fx_rates['USD'] is None:
+                self.assertIsInstance(fx_rates['USD'], dict)
+
+
+
+# Now that we know it works:
+fx_rates = get_fx_rates()
+
+
 class TestYesOrNo(unittest.TestCase):
 
     def setUp(self):
@@ -237,12 +254,6 @@ class TestGetTaxYear(unittest.TestCase):
         # with mock.patch('builtins.input', return_value='quit'):
         #     self.assertRaises(SystemExit, get_tax_year())
 
-
-
-class TestGetFXRates(unittest.TestCase):
-    def test_fx_rates(self):
-        fx_rates = get_fx_rates()
-        self.assertTrue(isinstance(fx_rates,dict))
 
 
 #@unittest.skip
@@ -490,7 +501,7 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
     def test_return_values(self):
         """ check that we get 2 return values for normal input"""
         with mock.patch('builtins.input', side_effect=['USD', 'share name']):
-            values = get_new_share_currency_and_full_name(self.new_trade)
+            values = get_new_share_currency_and_full_name(self.new_trade, fx_rates)
         self.assertIs(type(values), tuple)
         self.assertEqual(len(values), 2)
         self.assertEqual(values[0], 'share name')
@@ -498,7 +509,7 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
 
     def test_invalid_currency_rejection(self):
         with mock.patch('builtins.input', side_effect=['usd', 'USD', 'share name']):
-            values = get_new_share_currency_and_full_name(self.new_trade)
+            values = get_new_share_currency_and_full_name(self.new_trade, fx_rates)
         self.assertEqual(values[0], 'share name')
         self.assertEqual(values[1], 'USD')
 
