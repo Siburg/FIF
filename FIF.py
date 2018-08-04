@@ -227,9 +227,9 @@ class Dividend:
 
     Input arguments:
     code: a code, abbreviation or symbol to identify the share.
-    date: the payment date for the dividend (not the declaration date
-        or other type of date). This should be in the form of a
-        datetime object.
+    date_paid: the payment date for the dividend (not the declaration
+        date or other type of date). This should be in the form of a
+        date or datetime object.
     per_share: the dividend per share, in its native currency, as
         declared by the issuer. This can have more than 2 decimals.
     gross_paid: the total gross sum paid, before any withholding or
@@ -254,7 +254,7 @@ class Dividend:
     for dividends paid.
     """
 
-    def __init__(self, code, date, per_share, gross_paid):
+    def __init__(self, code, date_paid, per_share, gross_paid):
         """
         Constructor function. eligible_shares is calculated from the
         other inputs.
@@ -265,7 +265,7 @@ class Dividend:
         """
         self.code = code
         # add functions to parse date into a datetime object
-        self.date = date
+        self.date_paid = date_paid
         self.per_share = Decimal(per_share)
         self.gross_paid = Decimal(gross_paid)
         # consider something for tax
@@ -276,7 +276,7 @@ class Dividend:
 
     def __repr__(self):
         return 'dividend of {:,.2f} on {} for {} at {} per share'.format(
-               self.gross_paid, self.date, self.code, self.per_share)
+               self.gross_paid, self.date_paid, self.code, self.per_share)
 
 
 class IntegerError(Exception):
