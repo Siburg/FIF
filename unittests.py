@@ -174,6 +174,8 @@ output_format['total width'] = 112
 
 
 class TestGetFXRates(unittest.TestCase):
+    # This mostly tests the results of the function, i.e. the
+    # structure of fx_rates
     def test_fx_rates(self):
         fx_rates = get_fx_rates()
         self.assertIsInstance(fx_rates,dict)
@@ -182,7 +184,7 @@ class TestGetFXRates(unittest.TestCase):
             self.assertIn('USD', fx_rates)
             if not fx_rates['USD'] is None:
                 self.assertIsInstance(fx_rates['USD'], dict)
-
+                self.assertTrue(all(type(item) is date for item in fx_rates['USD']))
 
 
 # Now that we know it works:
