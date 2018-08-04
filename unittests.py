@@ -3,6 +3,8 @@
 from FIF import *
 import unittest
 from unittest import mock
+from unittest.mock import patch, MagicMock
+import io
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 from datetime import date
@@ -167,6 +169,60 @@ class TestTrade(unittest.TestCase):
     def test_charge_calculation(self):
         self.assertEqual(self.veu_trade.charge, Decimal('1151.23'))
         self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
+
+
+class TestYesOrNo(unittest.TestCase):
+
+    def setUp(self):
+        self.print_redirect = io.StringIO()
+        sys.stdout = self.print_redirect
+
+    @patch('builtins.input', MagicMock(side_effect=['y']))
+    def test_type(self):
+        self.assertIsInstance(yes_or_no('what?'), bool)
+
+    def test_inputs(self):
+        with mock.patch('builtins.input', side_effect=['y']):
+            self.assertTrue(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['Y']):
+            self.assertTrue(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['yes']):
+            self.assertTrue(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['YES']):
+            self.assertTrue(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['yEs']):
+            self.assertTrue(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['n']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['N']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['no']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['NO']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['nO']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['yess', 'n']):
+            self.assertFalse(yes_or_no('q'))
+            printed = self.print_redirect.getvalue()
+            self.assertEqual(printed, 'That is not a valid response; please try again.\n')
+        with mock.patch('builtins.input', side_effect=['ye', 'n']):
+            self.assertFalse(yes_or_no('q'))
+        with mock.patch('builtins.input', side_effect=['noo', 'y']):
+            self.assertTrue(yes_or_no('q'))
+
+
+    # Test below does not work. Use of a mock for input seems to
+    # obliterate the input prompt.
+    # def test_question(self):
+    #     with mock.patch('builtins.input', side_effect=['x']):
+    #         yes_or_no('what?')
+    #     printed = self.print_redirect.getvalue()
+    #     self.assertEqual(printed, 'what?')
+
+    def tearDown(self):
+        self.print_redirect.__del__()
+        sys.stdout = sys.__stdout__
 
 
 @unittest.skip

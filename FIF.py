@@ -294,6 +294,29 @@ class TooLateError(Exception):
     pass
 
 
+def yes_or_no(question):
+    """
+    Obtains a yes or no response to the question passed as argument.
+
+    input arguments:
+    question: a string holding a question for a yes or no reply.
+
+    return: bool True if response is a form of yes or False if no.
+
+    Allowed responses are "yes", "y", "no" or "n" in any upper, lower
+    or mixed case. Any other response asks for repeated input.
+    """
+    prompt = question + " (Yes/No) "
+    while True:
+        answer = input(prompt).lower()
+        if answer == 'yes' or answer == 'y':
+            return True
+        if answer == 'no' or answer == 'n':
+            return False
+        print('That is not a valid response; please try again.')
+    # return dummy; can never reach here
+
+
 def get_tax_year():
     """
     Obtains the tax year, i.e. the year in which the tax period ends.
