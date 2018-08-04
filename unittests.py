@@ -8,6 +8,7 @@ import io
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from collections import namedtuple
 from datetime import date
+import sys
 
 item_format = namedtuple('item_output_format', 'header, width, precision')
 output_format = {}
@@ -211,7 +212,6 @@ class TestYesOrNo(unittest.TestCase):
         with mock.patch('builtins.input', side_effect=['noo', 'y']):
             self.assertTrue(yes_or_no('q'))
 
-
     # Test below does not work. Use of a mock for input seems to
     # obliterate the input prompt.
     # def test_question(self):
@@ -225,9 +225,18 @@ class TestYesOrNo(unittest.TestCase):
         sys.stdout = sys.__stdout__
 
 
-@unittest.skip
 class TestGetTaxYear(unittest.TestCase):
-    pass
+
+    @patch('builtins.input', MagicMock(side_effect=['2016']))
+    def test_type(self):
+        self.assertIsInstance(get_tax_year(), int)
+
+    def test_inputs(self):
+        with mock.patch('builtins.input', side_effect=['2016']):
+            self.assertEqual(get_tax_year(), 2016)
+        # with mock.patch('builtins.input', return_value='quit'):
+        #     self.assertRaises(SystemExit, get_tax_year())
+
 
 
 class TestGetFXRates(unittest.TestCase):

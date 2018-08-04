@@ -299,12 +299,14 @@ def yes_or_no(question):
     Obtains a yes or no response to the question passed as argument.
 
     input arguments:
-    question: a string holding a question for a yes or no reply.
+    question: a string holding a question for a yes or no reply. The
+        phrase " (Yes/No) " will be added to this question by the
+        function.
 
     return: bool True if response is a form of yes or False if no.
 
     Allowed responses are "yes", "y", "no" or "n" in any upper, lower
-    or mixed case. Any other response asks for repeated input.
+    or mixed case. Any other response leads to repeated input prompts.
     """
     prompt = question + " (Yes/No) "
     while True:
