@@ -332,7 +332,7 @@ def get_date(prompt="Enter date: "):
     date_result: a date, in the form of a date object
     """
     question = 'Is that what you intended to enter?'
-    again = 'That is not a valid entry. Please try again.'
+    again = '\nThat is not a valid entry. Please try again.'
 
     while True:
         try:

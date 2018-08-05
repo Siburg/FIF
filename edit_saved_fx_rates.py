@@ -36,8 +36,23 @@ def update_currency_rates(fx_rates):
         print('That is not a valid currency code. This function is closing now.')
         return False    # breaking out of the function now
 
-    date_entry = get_date()
+    date_entry = get_date('Enter the date for which you would like to add or update a rate: ')
 
+    prompt = 'Enter the ' + currency + ' exchange rate for that date (as currency per NZD): '
+    again = '\nThat is not a valid entry. Please try again.'
+    while True:
+        try:
+            fx_rate = input(prompt)
+            # Next statement is only to check that we get an appropriate
+            # number. The fx_rate itself will be stored as a string.
+            # There is no check on the number of decimals.
+            value_error_check = float(fx_rate)
+            break   # If we don't get a value error we're good and done.
+        except ValueError:
+            print(again)
+
+    fx_rates[currency][date_entry] = fx_rate
+    update_made = True
     return update_made
 
 
