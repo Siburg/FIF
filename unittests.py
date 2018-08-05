@@ -244,6 +244,37 @@ class TestYesOrNo(unittest.TestCase):
         sys.stdout = sys.__stdout__
 
 
+class GetDate(unittest.TestCase):
+
+    def setUp(self):
+        self.print_redirect = io.StringIO()
+        sys.stdout = self.print_redirect
+
+    @patch('builtins.input', MagicMock(side_effect=['2016-3-31', 'y']))
+    def test_type(self):
+        self.assertIsInstance(get_date(), date)
+
+    def test_inputs(self):
+        with mock.patch('builtins.input', side_effect=['2016-3-31','y']):
+            self.assertEqual(get_date(), date(2016,3,31))
+        with mock.patch('builtins.input', side_effect=['2016-31-3','y']):
+            self.assertEqual(get_date(), date(2016,3,31))
+        with mock.patch('builtins.input', side_effect=['31-3-2016','y']):
+            self.assertEqual(get_date(), date(2016,3,31))
+        with mock.patch('builtins.input', side_effect=['1 Mar 16','y']):
+            self.assertEqual(get_date(), date(2016,3,1))
+        with mock.patch('builtins.input', side_effect=['31-3-2016','n','31/3/15','y']):
+            self.assertEqual(get_date(), date(2015,3,31))
+        with mock.patch('builtins.input', side_effect=['x', '31/3/8','y']):
+            self.assertEqual(get_date(), date(2008, 3, 31))
+        with mock.patch('builtins.input', side_effect=['x', '31/3/8','y']):
+            self.assertRaises(ValueError)
+
+    def tearDown(self):
+        self.print_redirect.__del__()
+        sys.stdout = sys.__stdout__
+
+
 class TestGetTaxYear(unittest.TestCase):
 
     @patch('builtins.input', MagicMock(side_effect=['2016']))
