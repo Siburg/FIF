@@ -1,6 +1,6 @@
 from tkinter import filedialog, Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-from FIF import yes_or_no, get_fx_rates, save_fx_rates
+from FIF import yes_or_no, get_fx_rates, save_fx_rates, get_date
 from datetime import date
 
 def get_iso4217_currency_codes():
@@ -34,7 +34,9 @@ def update_currency_rates(fx_rates):
     currency = input('Enter the currency code for which you would like to add or update a rate: ')
     if currency not in fx_rates:
         print('That is not a valid currency code. This function is closing now.')
-        return False
+        return False    # breaking out of the function now
+
+    date_entry = get_date()
 
     return update_made
 

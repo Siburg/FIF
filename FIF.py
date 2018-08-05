@@ -21,6 +21,7 @@ transactions such as share splits or share reorganisations.
 
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from datetime import date, datetime
+import dateutil.parser
 from collections import namedtuple
 from operator import attrgetter
 import csv
@@ -317,6 +318,36 @@ def yes_or_no(question):
             return False
         print('That is not a valid response; please try again.')
     # return dummy; can never reach here
+
+
+def get_date(prompt="Enter date: "):
+    """
+    Obtains a valid date from user input.
+
+    input arguments:
+    prompt: a prompt for the user input, in the form of a string. A
+        default prompt is set in the argument list.
+
+    return:
+    date_result: a date, in the form of a date object
+    """
+    question = 'Is that what you intended to enter?'
+    again = 'That is not a valid entry. Please try again.'
+
+    while True:
+        try:
+            user_input = input(prompt)
+            date_result = dateutil.parser.parse(user_input, dayfirst=True).date()
+            print('Your input was read as: {}'.format(date_result.strftime('%d %b %Y')))
+            if yes_or_no(question):
+                break   # out of the loop; we are finished
+
+            print('Sorry about that; you can try again.')
+
+        except ValueError:
+            print(again)
+
+    return date_result
 
 
 def get_tax_year():
