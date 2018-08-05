@@ -47,7 +47,7 @@ def update_currency_rates(fx_rates):
             # number. The fx_rate itself will be stored as a string.
             # There is no check on the number of decimals.
             value_error_check = float(fx_rate)
-            break   # If we don't get a value error we're good and done.
+            break   # If we don't get a ValueError we're good and done.
         except ValueError:
             print(again)
 

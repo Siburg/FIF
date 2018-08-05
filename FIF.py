@@ -638,7 +638,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
                 sys.exit()
                 # This is a hard exit. No need to do anything more.
 
-            check_for_float = float(fx_rate)
+            check_value_error = float(fx_rate)
             # This statement only serves to raise a ValueError if it
             # fails. Also consider adding a check to limit entries to
             # 4 decimals
@@ -700,7 +700,8 @@ def get_trades():
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
-            trade_date_time = datetime.strptime(row['date'], '%Y-%m-%d')
+            # trade_date_time = datetime.strptime(row['date'], '%Y-%m-%d')
+            trade_date_time = dateutil.parser.parse(row['date'], yearfirst=True)
 
             # trade = Trade(row['code'], row['date'], row['number_of_shares'],
             #               row['share_price'], row['trade_costs'])
