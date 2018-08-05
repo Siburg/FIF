@@ -268,7 +268,23 @@ class GetDate(unittest.TestCase):
         with mock.patch('builtins.input', side_effect=['x', '31/3/8','y']):
             self.assertEqual(get_date(), date(2008, 3, 31))
         with mock.patch('builtins.input', side_effect=['x', '31/3/8','y']):
+            get_date()
             self.assertRaises(ValueError)
+
+    def test_output_for_changed_input(self):
+        with mock.patch('builtins.input', side_effect=['31-3-2016','n','31/3/15','y']):
+            get_date()
+            output = 'Your input was read as: 31 Mar 2016\n' +\
+                     'Sorry about that; you can try again.\n' +\
+                    'Your input was read as: 31 Mar 2015\n'
+            self.assertEqual(self.print_redirect.getvalue(), output)
+
+    def test_output_for_invalid_input(self):
+        with mock.patch('builtins.input', side_effect=['x','31/3/15','y']):
+            get_date()
+            output = '\nThat is not a valid entry. Please try again.\n' +\
+                    'Your input was read as: 31 Mar 2015\n'
+            self.assertEqual(self.print_redirect.getvalue(), output)
 
     def tearDown(self):
         self.print_redirect.__del__()
