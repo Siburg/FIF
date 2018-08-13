@@ -46,7 +46,8 @@ class Share:
     currency: currency of the share prices.
     opening_holding : number of shares held at start of the tax period.
     opening_price: price per share at start of the tax period (in its
-        native currency).
+        native currency). This shoudl be the same as closing price at
+        the end of the previous tax period.
 
     Other attributes that are available:
     holding: current number of shares held, as calculated from other
@@ -206,7 +207,6 @@ class Trade:
         return: None
         """
         self.code = code
-        # add functions to parse date into a datetime object
         self.date_time = date_time
         self.number_of_shares = Decimal(number_of_shares)
         self.share_price = Decimal(share_price)
@@ -230,7 +230,7 @@ class Dividend:
     code: a code, abbreviation or symbol to identify the share.
     date_paid: the payment date for the dividend (not the declaration
         date or other type of date). This should be in the form of a
-        date or datetime object.
+        date object (time of the day is irrelevant for dividends).
     per_share: the dividend per share, in its native currency, as
         declared by the issuer. This can have more than 2 decimals.
     gross_paid: the total gross sum paid, before any withholding or
@@ -265,7 +265,6 @@ class Dividend:
         return: None
         """
         self.code = code
-        # add functions to parse date into a datetime object
         self.date_paid = date_paid
         self.per_share = Decimal(per_share)
         self.gross_paid = Decimal(gross_paid)

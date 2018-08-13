@@ -100,21 +100,50 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.holding, Decimal('1.99000'))
 
 
+class TestTrade(unittest.TestCase):
+    def setUp(self):
+        self.veu_trade = Trade('VEU', date(2016,2,5), '10', '115', '1.23')
+        self.emb_trade = Trade('EMB', datetime(2018,2,1,13,5), '-1000', '90.99', '4.56')
+
+    def test_existence(self):
+        self.assertIsInstance(self.veu_trade, Trade)
+
+    def test_representation(self):
+        self.assertEqual(repr(self.veu_trade),
+            'trade for 10 shares of VEU on 2016-02-05 at 115.00 with costs of 1.23')
+        self.assertEqual(repr(self.emb_trade),
+            'trade for -1,000 shares of EMB on 2018-02-01 13:05:00 at 90.99 with costs of 4.56')
+
+    def test_variables(self):
+        self.assertEqual(self.veu_trade.number_of_shares, Decimal('10'))
+        self.assertEqual(self.veu_trade.share_price, Decimal('115'))
+        self.assertEqual(self.veu_trade.trade_costs, Decimal('1.23'))
+        self.assertEqual(self.emb_trade.number_of_shares, Decimal('-1000'))
+        self.assertEqual(self.emb_trade.share_price, Decimal('90.99'))
+        self.assertEqual(self.emb_trade.trade_costs, Decimal('4.56'))
+        self.assertEqual(self.emb_trade.date_time.date(),date(2018,2,1))
+
+    def test_charge_calculation(self):
+        self.assertEqual(self.veu_trade.charge, Decimal('1151.23'))
+        self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
+
+
 class TestDividend(unittest.TestCase):
     def setUp(self):
-        self.emb_div = Dividend("EMB", 'feb', '0.023', '0.46')
-        self.large_div = Dividend('large', '30-11-2017', '100', '100000')
-        self.partial_div = Dividend('partial', '1 Mar 2018', '10', '1.23')
+        self.emb_div = Dividend("EMB", date(2016,2,5), '0.023', '0.46')
+        self.large_div = Dividend('large', date(2017,11,30), '100', '100000')
+        self.partial_div = Dividend('partial', date(2018,3,1), '10', '1.23')
 
     def test_existence(self):
         self.assertIsInstance(self.emb_div, Dividend)
 
     def test_representation(self):
-        self.assertEqual(repr(self.emb_div), 'dividend of 0.46 on feb for EMB at 0.023 per share')
+        self.assertEqual(repr(self.emb_div),
+                'dividend of 0.46 on 2016-02-05 for EMB at 0.023 per share')
         self.assertEqual(repr(self.large_div),
-            'dividend of 100,000.00 on 30-11-2017 for large at 100 per share')
+            'dividend of 100,000.00 on 2017-11-30 for large at 100 per share')
         self.assertEqual(repr(self.partial_div),
-            'dividend of 1.23 on 1 Mar 2018 for partial at 10 per share')
+            'dividend of 1.23 on 2018-03-01 for partial at 10 per share')
 
     def test_variables(self):
         self.assertEqual(self.emb_div.per_share, Decimal('0.023'))
@@ -125,33 +154,6 @@ class TestDividend(unittest.TestCase):
         self.assertEqual(self.emb_div.eligible_shares, Decimal('20'))
         self.assertEqual(self.large_div.eligible_shares, Decimal('1000'))
         self.assertEqual(self.partial_div.eligible_shares, Decimal('0.123'))
-
-
-class TestTrade(unittest.TestCase):
-    def setUp(self):
-        self.veu_trade = Trade('VEU', "jan", '10', '115', '1.23')
-        self.emb_trade = Trade('EMB', '01-02-18', '-1000', '90.99', '4.56')
-
-    def test_existence(self):
-        self.assertIsInstance(self.veu_trade, Trade)
-
-    def test_representation(self):
-        self.assertEqual(repr(self.veu_trade),
-            'trade for 10 shares of VEU on jan at 115.00 with costs of 1.23')
-        self.assertEqual(repr(self.emb_trade),
-            'trade for -1,000 shares of EMB on 01-02-18 at 90.99 with costs of 4.56')
-
-    def test_variables(self):
-        self.assertEqual(self.veu_trade.number_of_shares, Decimal('10'))
-        self.assertEqual(self.veu_trade.share_price, Decimal('115'))
-        self.assertEqual(self.veu_trade.trade_costs, Decimal('1.23'))
-        self.assertEqual(self.emb_trade.number_of_shares, Decimal('-1000'))
-        self.assertEqual(self.emb_trade.share_price, Decimal('90.99'))
-        self.assertEqual(self.emb_trade.trade_costs, Decimal('4.56'))
-
-    def test_charge_calculation(self):
-        self.assertEqual(self.veu_trade.charge, Decimal('1151.23'))
-        self.assertEqual(self.emb_trade.charge, Decimal('-90985.44'))
 
 
 item_format = namedtuple('item_output_format', 'header, width, precision')
