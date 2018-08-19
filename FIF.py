@@ -1114,6 +1114,17 @@ def save_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
     return
 
 
+def calc_comparative_value_income(opening_value, cost_of_trades,
+                                  gross_income_from_dividends, closing_value):
+    """
+
+    :return:
+    """
+    CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
+#    print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
+    return CV_income
+
+
 def main():
     # Starts with defining the output formatting. This could be moved
     # into a separate function, but that does not really serve any
@@ -1157,8 +1168,8 @@ def main():
 #    save_closing_positions(shares)
     save_fx_rates(fx_rates)
 
-    # move next to a function that includes printing of CV results
-    CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
+    CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
+                                  gross_income_from_dividends, closing_value)
 
 
     """

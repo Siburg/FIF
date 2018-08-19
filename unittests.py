@@ -468,7 +468,7 @@ class TestProcessTrades(unittest.TestCase):
 class TestGetDividends(unittest.TestCase):
 
     def test_return_type(self):
-        self.assertEqual(type(get_dividends()),list)
+        self.assertIsInstance(get_dividends(),list)
 
 
 @unittest.skip
@@ -553,7 +553,7 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
         """ check that we get 2 return values for normal input"""
         with mock.patch('builtins.input', side_effect=['USD', 'share name']):
             values = get_new_share_currency_and_full_name(self.new_trade, fx_rates)
-        self.assertIs(type(values), tuple)
+        self.assertIsInstance(values, tuple)
         self.assertEqual(len(values), 2)
         self.assertEqual(values[0], 'share name')
         self.assertEqual(values[1], 'USD')
@@ -563,6 +563,19 @@ class TestGetNewShareNameAndCurrency(unittest.TestCase):
             values = get_new_share_currency_and_full_name(self.new_trade, fx_rates)
         self.assertEqual(values[0], 'share name')
         self.assertEqual(values[1], 'USD')
+
+
+class TestCalcComparativeValueIncome(unittest.TestCase):
+
+    def test_returns(self):
+        zero = Decimal('0.00')
+        self.assertIsInstance(calc_comparative_value_income(zero, zero, zero, zero),
+                              Decimal)
+        self.assertEqual(calc_comparative_value_income(Decimal('1.11'), Decimal('2.22'),
+                        Decimal('3.33'), Decimal('4.44')), Decimal('4.44'))
+
+        # test the rest visually for now from output to console generated
+        # by test above
 
 
 @unittest.skip
