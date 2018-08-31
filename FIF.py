@@ -1080,15 +1080,6 @@ def save_closing_positions(shares):
     return
 
 
-def calc_QSA(shares, trades, dividends):
-    """
-
-    :return:
-    """
-    quick_sale_adjustments = Decimal('0.00')
-    return quick_sale_adjustments
-
-
 def FX_rate(currency, fx_date, conversion_method):
     """
 
@@ -1154,6 +1145,24 @@ def calc_comparative_value_income(opening_value, cost_of_trades,
     return CV_income
 
 
+def finish_with_CV_income(CV_income):
+    """
+
+    :param CV_income:
+    :return:
+    """
+    return
+
+
+def calc_QSA(shares, trades, dividends):
+    """
+
+    :return:
+    """
+    quick_sale_adjustments = Decimal('0.00')
+    return quick_sale_adjustments
+
+
 def main():
     # Starts with defining the output formatting. This could be moved
     # into a separate function, but that does not really serve any
@@ -1200,24 +1209,23 @@ def main():
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
                                   gross_income_from_dividends, closing_value)
 
+    print('\nFair Dividend Rate income calculation')
+    print('{v1:{w1}.0%}{v2:{w2}}{v3:>{w3},.2f}'.format(
+            v1 = Decimal(FAIR_DIVIDEND_RATE), w1 = 2,
+            v2 = ' of total opening value', w2 = 53,
+            v3 = FDR_basic_income, w3 = 20))
 
-    """
-    Reconsider next part.
-    If CV_income is < FDR_basic_income we do not even need to look at
-    quick sale adjustments. CV_income will already be the minimum,
-    regardless of any such adjustments; which can only result in an
-    increase of FDR_income.
-    Make sure we print results and outcomes, probably from within 
-    one or more functions.
-    """
-
-    if any_quick_sale_adjustment:
-        quick_sale_adjustments = calc_QSA(shares, trades, dividends)
+    if CV_income <= FDR_basic_income:
+        finish_with_CV_income(CV_income)
     else:
-        quick_sale_adjustments = Decimal('0.00')
 
-    FDR_income = FDR_basic_income + quick_sale_adjustments
-    FIF_income = max(0, min(FDR_income, CV_income))
+        if any_quick_sale_adjustment:
+            quick_sale_adjustments = calc_QSA(shares, trades, dividends)
+        else:
+            quick_sale_adjustments = Decimal('0.00')
+
+        FDR_income = FDR_basic_income + quick_sale_adjustments
+        FIF_income = max(0, min(FDR_income, CV_income))
     return
 
 
