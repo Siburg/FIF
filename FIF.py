@@ -677,11 +677,14 @@ def get_new_share_currency_and_full_name(trade, fx_rates):
     return full_name, currency
 
 
-def get_trades():
+def get_trades(tax_year):
     """
     Creates the list of share trades that took place, if any.
 
-    input arguments: none.
+    input arguments:
+    tax_year: the year in which the tax period ends. This must be
+        provided as an integer.
+
 
     return:
     trades: list of Trade instances with information for each
@@ -699,19 +702,20 @@ def get_trades():
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
-            # trade_date_time = datetime.strptime(row['date'], '%Y-%m-%d')
             trade_date_time = dateutil.parser.parse(row['date'], yearfirst=True)
 
-            # trade = Trade(row['code'], row['date'], row['number_of_shares'],
-            #               row['share_price'], row['trade_costs'])
-            # Lines above are what it should be.
-            # Lines below are temporary fix to deal with incomplete test data
-            # trade = Trade(row['code'], row['date'], row['number_of_shares'],
-            #               '0.00', '0.00')
-            trade = Trade(row['code'], trade_date_time, row['number_of_shares'],
-                          '0.00', '0.00')
+            if previous_closing_date(tax_year) < trade_date_time.date() <= closing_date(tax_year):
 
-            trades.append(trade)
+                # trade = Trade(row['code'], row['date'], row['number_of_shares'],
+                #               row['share_price'], row['trade_costs'])
+                # Lines above are what it should be.
+                # Lines below are temporary fix to deal with incomplete test data
+                # trade = Trade(row['code'], row['date'], row['number_of_shares'],
+                #               '0.00', '0.00')
+                trade = Trade(row['code'], trade_date_time, row['number_of_shares'],
+                              '0.00', '0.00')
+
+                trades.append(trade)
 
     return trades
 
@@ -815,7 +819,7 @@ def process_trades(shares, trades, fx_rates, outfmt):
 
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
     print('{v1:{w1}}{v2:>{w2},.{p2}f}\n'.format(
-        v1 = 'total cost of trades / (proceeds from disposals)',
+        v1 = 'total net cost of trades / (proceeds from disposals)',
             w1 = outfmt['total width'] - outfmt['value'].width,
         v2 = total_cost_of_trades, w2 = outfmt['value'].width, p2 = outfmt['value'].precision))
     # cost_of_trades in share instances have been
@@ -824,12 +828,14 @@ def process_trades(shares, trades, fx_rates, outfmt):
     return total_cost_of_trades, any_quick_sale_adjustment
 
 
-def get_dividends():
+def get_dividends(tax_year):
     """
     Creates the list with information on dividends received during the
     tax period.
 
-    input arguments: none.
+    input arguments:
+    tax_year: the year in which the tax period ends. This must be
+        provided as an integer.
 
     return:
     dividends: list of Dividend instances with information for each
@@ -1194,10 +1200,10 @@ def main():
     # get_more_fx_rates(fx_rates)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
-    trades = get_trades()
+    trades = get_trades(tax_year)
     cost_of_trades, any_quick_sale_adjustment = process_trades(
             shares, trades, fx_rates, output_format)
-    dividends = get_dividends()
+    dividends = get_dividends(tax_year)
     gross_income_from_dividends = process_dividends(shares, dividends, fx_rates, output_format)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, fx_rates,
