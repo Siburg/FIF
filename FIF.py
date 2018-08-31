@@ -1117,11 +1117,40 @@ def save_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
 def calc_comparative_value_income(opening_value, cost_of_trades,
                                   gross_income_from_dividends, closing_value):
     """
+    Calculates and prints the comparative value income.
 
-    :return:
+    input arguments (which have all been returned by earlier functions):
+    opening_value
+    cost_of_trades
+    gross_income_from_dividends
+    closing_value
+
+    return
+    CV_income: the calculated comparative value income
+
+    Note that this probably needs to be adjusted for tax effects, e.g.
+    by using net income from dividends.
     """
     CV_income = closing_value + gross_income_from_dividends - (opening_value + cost_of_trades)
-#    print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
+
+    print('\nComparative Value income calculation')
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'total closing value', w1 = 55, v2 = closing_value, w2 = 20))
+    # Need to amend below to show net income from dividends
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'total gross income from dividends', w1 = 55,
+            v2 = gross_income_from_dividends, w2 = 20))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'net proceeds from disposals/(costs of acquisitions)', w1 = 55,
+            v2 = -cost_of_trades, w2 = 20))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'total opening value', w1 = 55,
+            v2 = -opening_value, w2 = 20))
+    print('{v1:{w1}}{v2:>{w2}}'.format(
+            v1 = '', w1 = 55, v2 = 16 * '-', w2 = 20))
+    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
+            v1 = 'CV income', w1 = 55, v2 = CV_income, w2 = 20))
+
     return CV_income
 
 
