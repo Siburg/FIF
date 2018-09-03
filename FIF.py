@@ -19,19 +19,35 @@ Note: current version ignores, and will not work properly, with
 transactions such as share splits or share reorganisations.
 """
 
-from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
-from datetime import date, datetime
-import dateutil.parser
 from collections import namedtuple
-from operator import attrgetter
 import csv
+from datetime import date, datetime
+from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 # import json
+from operator import attrgetter
 import pickle
+import sys
 from tkinter import filedialog, Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
-import sys
+import dateutil.parser
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
+item_format = namedtuple('item_output_format', 'header, width, precision')
+outfmt = {'code': item_format('share code', 16, 16),
+                 'full_name': item_format('name / description', 27, 27),
+                 'price': item_format('price', 10, 999),
+                 'holding': item_format('shares', 13, 999),
+                 # Next 2 lines are a bit of kludge to combine
+                 # " currency rate" in the header. We also want a
+                 # space after printing the previous value, so that
+                 # is why we are  right-aligning the 3-letter
+                 # currency in a field with a width of 4.
+                 'value': item_format('value', 16, 2), 'currency': item_format(' cur', 4, 4),
+                 'FX rate': item_format('rency rate', 10, 4),
+                 'fees': item_format('fees', 12, 2),
+                 'date': item_format(' date ( & time)', 15, 15),
+                 'dividend': item_format('gross dividend', 22, 999), 'total width': 112}
+
 # Ending date of 31 March for tax periods is hard coded throughout.
 # (Search for   31   if that needs changing.)
 
@@ -500,7 +516,7 @@ def get_opening_positions(tax_year):
     return opening_positions
 
 
-def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_year, outfmt):
+def process_opening_positions(opening_shares, fx_rates, tax_year):
     """
     Calculates NZD value of each share held at opening, sets that value
     for the share, and calculates total NZD value across shares. Also
@@ -513,11 +529,8 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         get_opening_positions (i.e. without any updates from trades)
     fx_rates: a nested dictionary with foreign exchange rates applied
         to the opening shares at the end of the previous tax period.
-    fair_dividend_rate: the statutory Fair Dividend Rate. This should
-        be provided as a string or a Decimal.
     tax_year: the year in which the tax period ends. This must be
         provided as an integer.
-    outfmt: output formats for a range of items, in the form of a dict.
 
     return: (tuple with)
     total_opening_value: in NZD
@@ -565,7 +578,7 @@ def process_opening_positions(opening_shares, fx_rates, fair_dividend_rate, tax_
         share.opening_value = NZD_value
         total_opening_value += NZD_value
 
-        FDR_basic_income += (NZD_value * Decimal(fair_dividend_rate)).quantize(
+        FDR_basic_income += (NZD_value * Decimal(FAIR_DIVIDEND_RATE)).quantize(
             Decimal('0.01'), rounding=ROUND_HALF_UP)
         # It appears that FIF needs to be calculated for each security.
         # That's why final rounding is done per share, after
@@ -685,7 +698,6 @@ def get_trades(tax_year):
     tax_year: the year in which the tax period ends. This must be
         provided as an integer.
 
-
     return:
     trades: list of Trade instances with information for each
         trade (i.e. acquisition or disposal of shares) made during the
@@ -725,7 +737,7 @@ def get_trades(tax_year):
     return trades
 
 
-def process_trades(shares, trades, fx_rates, outfmt):
+def process_trades(shares, trades, fx_rates):
     """
 
     :param trades:
@@ -852,7 +864,7 @@ def get_dividends(tax_year):
     return dividends
 
 
-def process_dividends(shares, dividends, fx_rates, outfmt):
+def process_dividends(shares, dividends, fx_rates):
     """
 
     :param dividends:
@@ -960,7 +972,7 @@ def get_closing_prices(shares):
     return closing_prices
 
 
-def process_closing_prices(shares, closing_prices, fx_rates, tax_year, outfmt):
+def process_closing_prices(shares, closing_prices, fx_rates, tax_year):
     """
 
     :param shares:
@@ -1099,6 +1111,13 @@ def FX_rate(currency, fx_date, conversion_method):
     :param conversion_method:
     :return:
     """
+    # if share.currency in fx_rates and close_date in fx_rates[share.currency]:
+    #     fx_rate = fx_rates[share.currency][close_date]
+    # else:
+    #     fx_rate = get_new_fx_rate(fx_rates, share.currency, close_date)
+    #
+    # fx_rate = Decimal(fx_rate)
+    # # Converting now facilitates print output.
 
     exchange_rate = Decimal('1.0000')
     return exchange_rate
@@ -1178,31 +1197,12 @@ def calc_QSA(shares, trades, dividends):
 
 
 def main():
-    # Starts with defining the output formatting. This could be moved
-    # into a separate function, but that does not really serve any
-    # purpose (although it may look cleaner).
-    item_format = namedtuple('item_output_format', 'header, width, precision')
-    output_format = {'code': item_format('share code', 16, 16),
-                     'full_name': item_format('name / description', 27, 27),
-                     'price': item_format('price', 10, 999),
-                     'holding': item_format('shares', 13, 999),
-                     # Next 2 lines are a bit of kludge to combine
-                     # " currency rate" in the header. We also want a
-                     # space after printing the previous value, so that
-                     # is why we are  right-aligning the 3-letter
-                     # currency in a field with a width of 4.
-                     'value': item_format('value', 16, 2), 'currency': item_format(' cur', 4, 4),
-                     'FX rate': item_format('rency rate', 10, 4),
-                     'fees': item_format('fees', 12, 2),
-                     'date': item_format(' date ( & time)', 15, 15),
-                     'dividend': item_format('gross dividend', 22, 999), 'total width': 112}
-
     tax_year = 2016  # hard coded for testing
     #tax_year = get_tax_year()
     fx_rates = get_fx_rates()
     shares = get_opening_positions(tax_year)
     opening_value, FDR_basic_income = process_opening_positions(
-        shares, fx_rates, FAIR_DIVIDEND_RATE, tax_year, output_format)
+        shares, fx_rates, tax_year)
     # It may be useful to first get info on more fx_rates. That may
     # be input of IRD schedules, or rates saved during a previous run.
     # get_more_fx_rates(fx_rates)
@@ -1210,12 +1210,12 @@ def main():
     # during the year, which might receive dividends later.
     trades = get_trades(tax_year)
     cost_of_trades, any_quick_sale_adjustment = process_trades(
-            shares, trades, fx_rates, output_format)
+            shares, trades, fx_rates)
     dividends = get_dividends(tax_year)
-    gross_income_from_dividends = process_dividends(shares, dividends, fx_rates, output_format)
+    gross_income_from_dividends = process_dividends(shares, dividends, fx_rates)
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, fx_rates,
-            tax_year, output_format)
+            tax_year)
 # uncomment next when ready to actually save
     save_closing_positions(shares)
     save_fx_rates(fx_rates)

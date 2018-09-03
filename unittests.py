@@ -417,6 +417,7 @@ class TestCalcFDRBasic(unittest.TestCase):
         self.assertEqual(FDR_basic, Decimal('0.02'))
 
 
+@unittest.skip
 class TestGetTrades(unittest.TestCase):
 
     def test_return_type(self):
@@ -465,10 +466,11 @@ class TestProcessTrades(unittest.TestCase):
     # by test above
 
 
+@unittest.skip
 class TestGetDividends(unittest.TestCase):
 
     def test_return_type(self):
-        self.assertIsInstance(get_dividends(),list)
+        self.assertIsInstance(get_dividends(2016),list)
 
 
 @unittest.skip
