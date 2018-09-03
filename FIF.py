@@ -464,9 +464,9 @@ def get_opening_positions(tax_year):
     """
     opening_positions = []
     fx_rates = {}
-    filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
-    # filename = askopenfilename()
-    # Tk().withdraw
+    # filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
+    filename = askopenfilename()
+    Tk().withdraw
     # This is to remove the GUI window that was opened.
     if filename is None:
         print('The program does not have an input file to work with. It is now exiting!')
@@ -695,26 +695,31 @@ def get_trades(tax_year):
     csv file. It may be extended with additional input methods.
     """
     trades = []
-    filename = '/home/jelle/Documents/Trades2016.csv'
-    #
-    # filename = askopenfilename()
-    # Tk().withdraw
+    # filename = '/home/jelle/Documents/Trades2016.csv'
+
+    filename = askopenfilename()
+    Tk().withdraw
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
-            trade_date_time = dateutil.parser.parse(row['date'], yearfirst=True)
+            # use row fields as defined in Interactive Brokers csv output
+            if row['Header'] != 'Data':
+                continue
+                # skip rows with sub-totals and totals
+
+            trade_date_time = dateutil.parser.parse(row['Date/Time'], yearfirst=True)
 
             if previous_closing_date(tax_year) < trade_date_time.date() <= closing_date(tax_year):
+                # Strictly speaking this test should be unnecssary, but
+                # we just want to make sure we only deal with trades
+                # falling inside the tax year.
+                trade_costs = -Decimal(row['Comm/Fee'])
+                # Interactive Brokers has Comm/Fee as negative value,
+                # so we need to convert it here from the string that is
+                # being read.
 
-                # trade = Trade(row['code'], row['date'], row['number_of_shares'],
-                #               row['share_price'], row['trade_costs'])
-                # Lines above are what it should be.
-                # Lines below are temporary fix to deal with incomplete test data
-                # trade = Trade(row['code'], row['date'], row['number_of_shares'],
-                #               '0.00', '0.00')
-                trade = Trade(row['code'], trade_date_time, row['number_of_shares'],
-                              '0.00', '0.00')
-
+                trade = Trade(row['Symbol'], trade_date_time, row['Quantity'],
+                              row['T. Price'], trade_costs)
                 trades.append(trade)
 
     return trades
@@ -753,7 +758,7 @@ def process_trades(shares, trades, fx_rates, outfmt):
 
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:>{w6}}' + '{v7:>{w7}}' + '{v8:>{w8}}' + '{v9:>{w9}}'
-    trade_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},}' + \
+    trade_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},.{p3}f}' + \
         '{v4:>{w4},}' + '{v5:>{w5},}' + '{v6:>{w6},.{p6}f}' + '{v7:>{w7}}' + \
         '{v8:>{w8},.{p8}f}' + '{v9:>{w9},.{p9}f}'
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
@@ -802,7 +807,7 @@ def process_trades(shares, trades, fx_rates, outfmt):
             v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
             v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
                 p2=outfmt['date'].precision,
-            v3=trade.trade_costs, w3=outfmt['fees'].width,
+            v3=trade.trade_costs, w3=outfmt['fees'].width, p3=outfmt['fees'].precision,
             v4=trade.share_price, w4=outfmt['price'].width,
             v5=trade.number_of_shares, w5=outfmt['holding'].width,
             v6=trade.charge, w6=outfmt['value'].width, p6=outfmt['value'].precision,
@@ -1166,6 +1171,9 @@ def calc_QSA(shares, trades, dividends):
     :return:
     """
     quick_sale_adjustments = Decimal('0.00')
+    for share in shares:
+        if share.quick_sale_adjustments:
+            print('Quick Sale Adjustment for ' + share.code)
     return quick_sale_adjustments
 
 
@@ -1209,7 +1217,7 @@ def main():
     closing_value = process_closing_prices(shares, closing_prices, fx_rates,
             tax_year, output_format)
 # uncomment next when ready to actually save
-#    save_closing_positions(shares)
+    save_closing_positions(shares)
     save_fx_rates(fx_rates)
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
