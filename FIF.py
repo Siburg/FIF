@@ -58,7 +58,6 @@ fx_rates = {}
 """
 # Ending date of 31 March for tax periods is hard coded throughout.
 # (Search for   31   if that needs changing.)
-# dummy
 
 
 class Share:
@@ -435,6 +434,122 @@ def closing_date(tax_year):
     return date(tax_year, 3, 31)
 
 
+def get_new_fx_rate(currency, fx_date):
+    """
+    Obtains a foreign exchange rate for the currency and day specified
+    in the argument list. The obtained rate is then added to the
+    dictionary with fx_rates.
+
+    input arguments:
+    currency: the currency for which we need the exchange rate.
+    fx_date: the date for which we need the exchange rate. This must be
+        passed in the form of a date object.
+
+    return: the desired foreign exchange rate, as a string.
+
+    other data changes (to mutable objects in arguments):
+    fx_rates is updated with the new fx_rate.
+
+    This function also allows the user to enter "quit", instead of an
+    exchange rate. If the user does that the program will immediately
+    do a hard exit.
+    """
+    global fx_rates
+    # fx_rates: a nested dictionary with foreign exchange rates by
+    # currency and by date (as a date object).
+
+    if fx_date.month == 3 and fx_date.day == 31:
+        # Assume we are dealing with tax period closing date. It is
+        # still possible to enter a rolling average rate for March
+        # if desired. This could lead to the same rolling average rate
+        # being entered twice -- for 15 March and for 31 March -- but
+        # so be it.
+        rate_date = fx_date
+        prompt = 'Enter ' + currency + ' currency rate for 31/03/' + \
+            str(fx_date.year) + ' : '
+    else:
+        # Assume we want, and will save, an IRD mid-month rate. This
+        # could be a rolling average rate.
+        rate_date = date(fx_date.year, fx_date.month, 15)
+        # This is redundant if this function will only be called from
+        # FX_rate() but is harmless to leave in.
+        prompt = 'Enter ' + currency + ' currency rate for 15/' + \
+            str(fx_date.month) + '/' + str(fx_date.year) + ' : '
+
+    again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
+
+    while True:
+        try:
+            fx_rate = input(prompt)
+            if fx_rate == 'quit':
+                print('Program is now exiting')
+                sys.exit()
+                # This is a hard exit. No need to do anything more.
+
+            check_value_error = float(fx_rate)
+            # This statement only serves to raise a ValueError if it
+            # fails. Also consider adding a check to limit entries to
+            # 4 decimals
+
+            break   # out of the loop, with a valid value, when here.
+
+        except ValueError:
+            prompt = 'That is not a valid entry.' + again
+
+    fx_rates[currency][rate_date] = fx_rate
+
+    return fx_rate
+
+
+def FX_rate(currency, fx_date):
+    """
+
+    :param currency:
+    :param date:
+    :param conversion_method:
+    :return:
+    """
+    if fx_date.month == 3 and fx_date.day == 31:
+        # Assume we are dealing with a tax period closing date.
+        rate_date = fx_date
+    else:
+        # Assume we want, and will use, an IRD mid-month rate. This
+        # could be a rolling average rate.
+        rate_date = date(fx_date.year, fx_date.month, 15)
+
+    if currency in fx_rates and rate_date in fx_rates[currency]:
+        fx_rate = fx_rates[currency][rate_date]
+    else:
+        fx_rate = get_new_fx_rate(currency, rate_date)
+
+    return Decimal(fx_rate)
+
+
+def get_new_share_currency_and_full_name(trade):
+    """
+
+    :param trade:
+    :return:
+    """
+
+    prompt = ('{0} is for a share that is not yet in the system.\n' +
+              'Enter the currency code in which that share trades (e.g. USD): ').format(
+        repr(trade))
+    currency = input(prompt)
+
+    while currency not in fx_rates:
+        print('The system does not have any information for currency code ' + currency)
+        currency = input('Please enter a valid code (from ISO4217) for an existing currency')
+
+    full_name = input('Enter the full share name or description for ' +
+                      trade.code + ' : ')
+    # Consider adding a while loop to ensure we get a string value.
+    # Also consider if we allow a blank return.
+    # Also consider a sentinel value such as "quit" allowing the user
+    # exit the program altogether.
+    return full_name, currency
+
+
 def get_fx_rates(filename='saved_fx_rates.pickle'):
     """
 
@@ -504,13 +619,6 @@ def get_opening_positions(tax_year):
             opening_share = Share(row['code'], full_name, currency,
                     row['holding'], row['closing_price'])
             opening_positions.append(opening_share)
-
-            # if 'fx_rate' in row:
-            #     if currency not in fx_rates:
-            #         # Because fx_rates starts empty there is no need to
-            #         # check or determine date(s) at this stage.
-            #         day_with_fx_rate = {previous_closing_date(tax_year): row['fx_rate']}
-            #         fx_rates[currency] = day_with_fx_rate
 
     return opening_positions
 
@@ -599,97 +707,6 @@ def process_opening_positions(opening_shares, tax_year):
     return total_opening_value, FDR_basic_income
 
 
-def get_new_fx_rate(currency, fx_date):
-    """
-    Obtains a foreign exchange rate for the currency and day specified
-    in the argument list. The obtained rate is then added to the
-    dictionary with fx_rates.
-
-    input arguments:
-    currency: the currency for which we need the exchange rate.
-    fx_date: the date for which we need the exchange rate. This must be
-        passed in the form of a date object.
-
-    return: the desired foreign exchange rate, as a string.
-
-    other data changes (to mutable objects in arguments):
-    fx_rates is updated with the new fx_rate.
-
-    This function also allows the user to enter "quit", instead of an
-    exchange rate. If the user does that the program will immediately
-    do a hard exit.
-    """
-    global fx_rates
-    # fx_rates: a nested dictionary with foreign exchange rates by
-    # currency and by date (as a date object).
-
-
-    if fx_date.month == 3 and fx_date.day == 31:
-        # Assume we are dealing with tax period closing date. It is
-        # still possible to enter a rolling average rate for March
-        # if desired. This could lead to the same rolling average rate
-        # being entered twice -- for 15 March and for 31 March -- but
-        # so be it.
-        rate_date = fx_date
-        prompt = 'Enter ' + currency + ' currency rate for 31/03/' + \
-            str(fx_date.year) + ' : '
-    else:
-        # Assume we want, and will save, an IRD mid-month rate. This
-        # could be a rolling average rate.
-        rate_date = date(fx_date.year, fx_date.month, 15)
-        prompt = 'Enter ' + currency + ' currency rate for 15/' + \
-            str(fx_date.month) + '/' + str(fx_date.year) + ' : '
-
-    again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
-
-    while True:
-        try:
-            fx_rate = input(prompt)
-            if fx_rate == 'quit':
-                print('Program is now exiting')
-                sys.exit()
-                # This is a hard exit. No need to do anything more.
-
-            check_value_error = float(fx_rate)
-            # This statement only serves to raise a ValueError if it
-            # fails. Also consider adding a check to limit entries to
-            # 4 decimals
-
-            break   # out of the loop, with a valid value, when here.
-
-        except ValueError:
-            prompt = 'That is not a valid entry.' + again
-
-    fx_rates[currency][rate_date] = fx_rate
-
-    return fx_rate
-
-
-def get_new_share_currency_and_full_name(trade):
-    """
-
-    :param trade:
-    :return:
-    """
-
-    prompt = ('{0} is for a share that is not yet in the system.\n' +
-              'Enter the currency code in which that share trades (e.g. USD): ').format(
-        repr(trade))
-    currency = input(prompt)
-
-    while currency not in fx_rates:
-        print('The system does not have any information for currency code ' + currency)
-        currency = input('Please enter a valid code (from ISO4217) for an existing currency')
-
-    full_name = input('Enter the full share name or description for ' +
-                      trade.code + ' : ')
-    # Consider adding a while loop to ensure we get a string value.
-    # Also consider if we allow a blank return.
-    # Also consider a sentinel value such as "quit" allowing the user
-    # exit the program altogether.
-    return full_name, currency
-
-
 def get_trades(tax_year):
     """
     Creates the list of share trades that took place, if any.
@@ -760,7 +777,7 @@ def process_trades(shares, trades):
         # we can never process unmatching trades. That may require
         # some revamping of the code in such a while loop.
         if not any(share.code == trade.code for share in shares):
-            full_name, currency = get_new_share_currency_and_full_name(trade, fx_rates)
+            full_name, currency = get_new_share_currency_and_full_name(trade)
             new_share = Share(trade.code, full_name, currency)
             shares.append(new_share)
 
@@ -793,7 +810,7 @@ def process_trades(shares, trades):
 
             share.increase_holding(trade.number_of_shares)
 
-            currency_FX_rate = FX_rate(share.currency, trade.date_time, 'mid-month')
+            currency_FX_rate = FX_rate(share.currency, trade.date_time.date())
             # obviously this needs work
 
             NZD_value = (trade.charge / currency_FX_rate).quantize(
@@ -892,7 +909,7 @@ def process_dividends(shares, dividends):
     for share in shares:
         share_income_from_dividends = Decimal('0.00')
         for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-            currency_FX_rate = FX_rate(share.currency, dividend.date, 'mid-month')
+            currency_FX_rate = FX_rate(share.currency, dividend.date)
             # obviously this needs work
 
             NZD_value = (dividend.gross_paid / currency_FX_rate).quantize(
@@ -1101,26 +1118,6 @@ def save_closing_positions(shares):
     #     json_item = json.dumps(share, default = lambda x: x.__dict__)
     #     print(json_item)
     return
-
-
-def FX_rate(currency, fx_date, conversion_method):
-    """
-
-    :param currency:
-    :param date:
-    :param conversion_method:
-    :return:
-    """
-    # if share.currency in fx_rates and close_date in fx_rates[share.currency]:
-    #     fx_rate = fx_rates[share.currency][close_date]
-    # else:
-    #     fx_rate = get_new_fx_rate(fx_rates, share.currency, close_date)
-    #
-    # fx_rate = Decimal(fx_rate)
-    # # Converting now facilitates print output.
-
-    exchange_rate = Decimal('1.0000')
-    return exchange_rate
 
 
 def save_fx_rates(filename='saved_fx_rates.pickle'):
