@@ -27,9 +27,10 @@ from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 from operator import attrgetter
 import pickle
 import sys
-from tkinter import filedialog, Tk
+from tkinter import Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 import dateutil.parser
+
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 item_format = namedtuple('item_output_format', 'header, width, precision')
@@ -47,7 +48,14 @@ outfmt = {'code': item_format('share code', 16, 16),
                  'fees': item_format('fees', 12, 2),
                  'date': item_format(' date ( & time)', 15, 15),
                  'dividend': item_format('gross dividend', 22, 999), 'total width': 112}
+fx_rates = {}
+"""
+    All foreign exchange rates, here and in any other function, must be
+    compatible with those used by the IRD, if not directly obtained
+    from them. This means foreign values are divided by the fx_rates
+    to arrive at NZD values.
 
+"""
 # Ending date of 31 March for tax periods is hard coded throughout.
 # (Search for   31   if that needs changing.)
 
@@ -433,9 +441,10 @@ def get_fx_rates(filename='saved_fx_rates.pickle'):
     :param fx_rates:
     :return:
     """
+    global fx_rates
     with open(filename, 'rb') as fx_rates_save_file:
         fx_rates = pickle.load(fx_rates_save_file)
-    return fx_rates
+    return
 
 
 def get_opening_positions(tax_year):
@@ -447,14 +456,9 @@ def get_opening_positions(tax_year):
     tax_year: the year in which the tax period ends. This must be
         provided as an integer.
 
-    return: (tuple with)
-    opening_shares: list of Share instances with information for each
+    return:
+    opening_positions: list of Share instances with information for each
         share at the opening of the tax period.
-    fx_rates: a nested dictionary with foreign exchange rates applied
-        to the opening shares at the end of the previous tax period.
-        This dictionary can later be expanded by other functions with
-        foreign exchange rates for other dates, and possibly other
-        currencies as well.
 
     For shares that were already held at the end of the previous tax
     period, the information on opening positions must be the same as
@@ -470,16 +474,10 @@ def get_opening_positions(tax_year):
     information with the code, full_name, and currency of shares that
     are subsequently acquired during the year.
 
-    All foreign exchange rates, here and in any other function, must be
-    compatible with those used by the IRD, if not directly obtained
-    from them. This means foreign values are divided by the fx_rates
-    to arrive at NZD values.
-
     The function is now designed to only read such information from a
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
-    fx_rates = {}
     # filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
     filename = askopenfilename()
     Tk().withdraw
@@ -516,7 +514,7 @@ def get_opening_positions(tax_year):
     return opening_positions
 
 
-def process_opening_positions(opening_shares, fx_rates, tax_year):
+def process_opening_positions(opening_shares, tax_year):
     """
     Calculates NZD value of each share held at opening, sets that value
     for the share, and calculates total NZD value across shares. Also
@@ -527,8 +525,6 @@ def process_opening_positions(opening_shares, fx_rates, tax_year):
     input arguments:
     opening_shares: list of shares, as obtained from
         get_opening_positions (i.e. without any updates from trades)
-    fx_rates: a nested dictionary with foreign exchange rates applied
-        to the opening shares at the end of the previous tax period.
     tax_year: the year in which the tax period ends. This must be
         provided as an integer.
 
@@ -602,15 +598,13 @@ def process_opening_positions(opening_shares, fx_rates, tax_year):
     return total_opening_value, FDR_basic_income
 
 
-def get_new_fx_rate(fx_rates, currency, fx_date):
+def get_new_fx_rate(currency, fx_date):
     """
     Obtains a foreign exchange rate for the currency and day specified
     in the argument list. The obtained rate is then added to the
     dictionary with fx_rates.
 
     input arguments:
-    fx_rates: a nested dictionary with foreign exchange rates by
-        currency and by date (as a date object).
     currency: the currency for which we need the exchange rate.
     fx_date: the date for which we need the exchange rate. This must be
         passed in the form of a date object.
@@ -624,6 +618,11 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
     exchange rate. If the user does that the program will immediately
     do a hard exit.
     """
+    global fx_rates
+    # fx_rates: a nested dictionary with foreign exchange rates by
+    # currency and by date (as a date object).
+
+
     if fx_date.month == 3 and fx_date.day == 31:
         # Assume we are dealing with tax period closing date. It is
         # still possible to enter a rolling average rate for March
@@ -665,7 +664,7 @@ def get_new_fx_rate(fx_rates, currency, fx_date):
     return fx_rate
 
 
-def get_new_share_currency_and_full_name(trade, fx_rates):
+def get_new_share_currency_and_full_name(trade):
     """
 
     :param trade:
@@ -737,7 +736,7 @@ def get_trades(tax_year):
     return trades
 
 
-def process_trades(shares, trades, fx_rates):
+def process_trades(shares, trades):
     """
 
     :param trades:
@@ -864,7 +863,7 @@ def get_dividends(tax_year):
     return dividends
 
 
-def process_dividends(shares, dividends, fx_rates):
+def process_dividends(shares, dividends):
     """
 
     :param dividends:
@@ -972,7 +971,7 @@ def get_closing_prices(shares):
     return closing_prices
 
 
-def process_closing_prices(shares, closing_prices, fx_rates, tax_year):
+def process_closing_prices(shares, closing_prices, tax_year):
     """
 
     :param shares:
@@ -1023,7 +1022,7 @@ def process_closing_prices(shares, closing_prices, fx_rates, tax_year):
                 if share.currency in fx_rates and close_date in fx_rates[share.currency]:
                     fx_rate = fx_rates[share.currency][close_date]
                 else:
-                    fx_rate = get_new_fx_rate(fx_rates, share.currency, close_date)
+                    fx_rate = get_new_fx_rate(share.currency, close_date)
 
                 fx_rate = Decimal(fx_rate)
                 # Converting now facilitates print output.
@@ -1123,13 +1122,14 @@ def FX_rate(currency, fx_date, conversion_method):
     return exchange_rate
 
 
-def save_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
+def save_fx_rates(filename='saved_fx_rates.pickle'):
     """
 
     :rtype: object
     :param fx_rates:
     :return:
     """
+    global fx_rates
     with open(filename, 'wb') as fx_rates_save_file:
         pickle.dump(fx_rates, fx_rates_save_file)
     return
@@ -1202,7 +1202,7 @@ def main():
     fx_rates = get_fx_rates()
     shares = get_opening_positions(tax_year)
     opening_value, FDR_basic_income = process_opening_positions(
-        shares, fx_rates, tax_year)
+        shares, tax_year)
     # It may be useful to first get info on more fx_rates. That may
     # be input of IRD schedules, or rates saved during a previous run.
     # get_more_fx_rates(fx_rates)
@@ -1210,15 +1210,14 @@ def main():
     # during the year, which might receive dividends later.
     trades = get_trades(tax_year)
     cost_of_trades, any_quick_sale_adjustment = process_trades(
-            shares, trades, fx_rates)
+            shares, trades)
     dividends = get_dividends(tax_year)
-    gross_income_from_dividends = process_dividends(shares, dividends, fx_rates)
+    gross_income_from_dividends = process_dividends(shares, dividends)
     closing_prices = get_closing_prices(shares)
-    closing_value = process_closing_prices(shares, closing_prices, fx_rates,
-            tax_year)
+    closing_value = process_closing_prices(shares, closing_prices, tax_year)
 # uncomment next when ready to actually save
     save_closing_positions(shares)
-    save_fx_rates(fx_rates)
+    save_fx_rates()
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
                                   gross_income_from_dividends, closing_value)
