@@ -58,6 +58,7 @@ fx_rates = {}
 """
 # Ending date of 31 March for tax periods is hard coded throughout.
 # (Search for   31   if that needs changing.)
+# dummy
 
 
 class Share:
