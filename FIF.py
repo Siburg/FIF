@@ -673,8 +673,7 @@ def process_opening_positions(opening_shares, tax_year):
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        fx_rate = Decimal(fx_rates[share.currency][previous_closing_date(tax_year)])
-
+        fx_rate = FX_rate(share.currency, previous_closing_date(tax_year))
         NZD_value = (foreign_value / fx_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
@@ -810,10 +809,8 @@ def process_trades(shares, trades):
 
             share.increase_holding(trade.number_of_shares)
 
-            currency_FX_rate = FX_rate(share.currency, trade.date_time.date())
-            # obviously this needs work
-
-            NZD_value = (trade.charge / currency_FX_rate).quantize(
+            fx_rate = FX_rate(share.currency, trade.date_time.date())
+            NZD_value = (trade.charge / fx_rate).quantize(
                 Decimal('0.01'), ROUND_HALF_UP)
 
             # This is why there is an outer loop. If a separate
@@ -841,7 +838,7 @@ def process_trades(shares, trades):
             v5=trade.number_of_shares, w5=outfmt['holding'].width,
             v6=trade.charge, w6=outfmt['value'].width, p6=outfmt['value'].precision,
             v7=share.currency, w7=outfmt['currency'].width,
-            v8=currency_FX_rate, w8=outfmt['FX rate'].width, p8=outfmt['FX rate'].precision,
+            v8=fx_rate, w8=outfmt['FX rate'].width, p8=outfmt['FX rate'].precision,
             v9=NZD_value, w9=outfmt['value'].width, p9=outfmt['value'].precision))
 
         share.cost_of_trades = share_cost_of_trades
@@ -909,10 +906,8 @@ def process_dividends(shares, dividends):
     for share in shares:
         share_income_from_dividends = Decimal('0.00')
         for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-            currency_FX_rate = FX_rate(share.currency, dividend.date)
-            # obviously this needs work
-
-            NZD_value = (dividend.gross_paid / currency_FX_rate).quantize(
+            fx_rate = FX_rate(share.currency, dividend.date)
+            NZD_value = (dividend.gross_paid / fx_rate).quantize(
                 Decimal('0.01'), ROUND_HALF_UP)
 
             # This is why there is an outer loop. If a separate
@@ -926,7 +921,7 @@ def process_dividends(shares, dividends):
                 v4=dividend.eligible_shares, w4=outfmt['holding'].width,
                 v5=dividend.gross_paid, w5=outfmt['value'].width, p5=outfmt['value'].precision,
                 v6=share.currency, w6=outfmt['currency'].width,
-                v7=currency_FX_rate, w7=outfmt['FX rate'].width, p7=outfmt['FX rate'].precision,
+                v7=fx_rate, w7=outfmt['FX rate'].width, p7=outfmt['FX rate'].precision,
                 v8=NZD_value, w8=outfmt['value'].width, p8=outfmt['value'].precision))
 
         share.gross_income_from_dividends = share_income_from_dividends
@@ -1036,18 +1031,10 @@ def process_closing_prices(shares, closing_prices, tax_year):
                 # currency, before additional rounding below. This can only
                 # be an issue for shares with fractional holdings.
 
-                close_date = closing_date(tax_year)
-                if share.currency in fx_rates and close_date in fx_rates[share.currency]:
-                    fx_rate = fx_rates[share.currency][close_date]
-                else:
-                    fx_rate = get_new_fx_rate(share.currency, close_date)
-
-                fx_rate = Decimal(fx_rate)
-                # Converting now facilitates print output.
-
-                # Make this a separate rounding as well.
+                fx_rate = FX_rate(share.currency, closing_date(tax_year))
                 NZD_value = (foreign_value / fx_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
+                # Make this a separate rounding as well.
 
                 # Next statement stores the result in Share object
                 share.closing_value = NZD_value
@@ -1197,18 +1184,13 @@ def calc_QSA(shares, trades, dividends):
 def main():
     tax_year = 2016  # hard coded for testing
     #tax_year = get_tax_year()
-    fx_rates = get_fx_rates()
+    get_fx_rates()
     shares = get_opening_positions(tax_year)
-    opening_value, FDR_basic_income = process_opening_positions(
-        shares, tax_year)
-    # It may be useful to first get info on more fx_rates. That may
-    # be input of IRD schedules, or rates saved during a previous run.
-    # get_more_fx_rates(fx_rates)
+    opening_value, FDR_basic_income = process_opening_positions(shares, tax_year)
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
     trades = get_trades(tax_year)
-    cost_of_trades, any_quick_sale_adjustment = process_trades(
-            shares, trades)
+    cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
     dividends = get_dividends(tax_year)
     gross_income_from_dividends = process_dividends(shares, dividends)
     closing_prices = get_closing_prices(shares)
