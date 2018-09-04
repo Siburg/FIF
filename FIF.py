@@ -871,10 +871,44 @@ def get_dividends(tax_year):
     return:
     dividends: list of Dividend instances with information for each
         dividend received during the tax period. The list may be empty.
-
-    FUNCIONALITY STILL TO BE IMPLEMENTED. IT NOW RETURNS AN EMPTY LIST.
     """
     dividends = []
+    filename = '/home/jelle/Documents/2016 Mar/Jelle/dividends_2016_fiscal_IB_with_Robeco .csv'
+    # filename = askopenfilename()
+    # Tk().withdraw
+    with open(filename, newline='') as dividends_file:
+        reader = csv.DictReader(dividends_file)
+        for row in reader:
+            # use row fields as defined in Interactive Brokers csv output
+            date_paid = dateutil.parser.parse(row['Date'], yearfirst=True).date()
+            if previous_closing_date(tax_year) < date_paid <= closing_date(tax_year):
+                # Strictly speaking this test should be unnecssary, but
+                # we just want to make sure we only deal with dividends
+                # falling inside the tax year.
+
+                gross_paid = row['Amount']
+                description = row['Description']
+                first_split = description.split('(')
+                code = first_split[0].strip()
+                second_split = first_split[1].split()
+                for item in second_split:
+                    try:
+                        per_share = float(item)
+                        # If we do NOT get a ValueError we have found
+                        # what we are looking for. However, we actually
+                        # want the string value, so it can be converted
+                        # to Decimal.
+                        per_share = item
+                        break
+                        # When we find it
+                    except ValueError:
+                        continue
+                        # Try the next item
+
+                dividend = Dividend(code, date_paid, per_share, gross_paid)
+                print(dividend)
+                dividends.append(dividend)
+
     return dividends
 
 
@@ -906,7 +940,7 @@ def process_dividends(shares, dividends):
     for share in shares:
         share_income_from_dividends = Decimal('0.00')
         for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-            fx_rate = FX_rate(share.currency, dividend.date)
+            fx_rate = FX_rate(share.currency, dividend.date_paid)
             NZD_value = (dividend.gross_paid / fx_rate).quantize(
                 Decimal('0.01'), ROUND_HALF_UP)
 
@@ -916,7 +950,7 @@ def process_dividends(shares, dividends):
             share_income_from_dividends += NZD_value
             print(dividend_format_string.format(
                 v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
-                v2=dividend.date, w2=outfmt['date'].width,
+                v2=dividend.date_paid, w2=outfmt['date'].width,
                 v3=dividend.per_share, w3=outfmt['dividend'].width,
                 v4=dividend.eligible_shares, w4=outfmt['holding'].width,
                 v5=dividend.gross_paid, w5=outfmt['value'].width, p5=outfmt['value'].precision,

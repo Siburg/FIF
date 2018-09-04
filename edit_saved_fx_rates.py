@@ -1,7 +1,9 @@
-from tkinter import filedialog, Tk
+from tkinter import Tk
 from tkinter.filedialog import askopenfilename, asksaveasfilename
 from FIF import yes_or_no, get_fx_rates, save_fx_rates, get_date
 from datetime import date
+
+fx_rates = {}
 
 def get_iso4217_currency_codes():
     filename = askopenfilename()
@@ -57,7 +59,8 @@ def update_currency_rates(fx_rates):
 
 
 def main():
-    fx_rates = get_fx_rates()
+    global fx_rates
+    get_fx_rates()
     update_made = False
 
     question = 'Would you like to update the list of currency codes in fx_rates?'
@@ -73,7 +76,7 @@ def main():
     if update_made:
         question = 'Would you like to save the updates to fx_rates?'
         if (yes_or_no(question)):
-            save_fx_rates(fx_rates)
+            save_fx_rates()
 
     return
 
