@@ -274,8 +274,8 @@ class Dividend:
     converted to Decimals.
 
     The class does not yet hold information on withholding or other
-    taxes on dividends. This probably still needs to be added, but may
-    be tricky because dates for tax paid may not match up with dates
+    taxes on dividends. This might be added, but is probably too
+    tricky because dates for tax paid may not match up with dates
     for dividends paid.
     """
 
@@ -292,10 +292,11 @@ class Dividend:
         self.date_paid = date_paid
         self.per_share = Decimal(per_share)
         self.gross_paid = Decimal(gross_paid)
-        # consider something for tax
         # Note that self.gross_paid should be gross before tax, or the
         # calculation below will need to be modified for tax effects.
-        self.eligible_shares = self.gross_paid / self.per_share
+        self.eligible_shares = (self.gross_paid / self.per_share).quantize(
+                Decimal('1'), ROUND_HALF_UP)
+        # Assume dividends are only paid on full shares.
         return
 
     def __repr__(self):
@@ -594,9 +595,9 @@ def get_opening_positions(tax_year):
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
-    # filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
-    filename = askopenfilename()
-    Tk().withdraw
+    filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
+    # filename = askopenfilename()
+    # Tk().withdraw
     # This is to remove the GUI window that was opened.
     if filename is None:
         print('The program does not have an input file to work with. It is now exiting!')
@@ -723,10 +724,10 @@ def get_trades(tax_year):
     csv file. It may be extended with additional input methods.
     """
     trades = []
-    # filename = '/home/jelle/Documents/Trades2016.csv'
+    filename = '/home/jelle/Documents/2016 Mar/Jelle/trades_2016_fiscal_IB_with_Robeco.csv'
 
-    filename = askopenfilename()
-    Tk().withdraw
+    # filename = askopenfilename()
+    # Tk().withdraw
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
@@ -873,9 +874,9 @@ def get_dividends(tax_year):
         dividend received during the tax period. The list may be empty.
     """
     dividends = []
-    filename = '/home/jelle/Documents/2016 Mar/Jelle/dividends_2016_fiscal_IB_with_Robeco .csv'
-    # filename = askopenfilename()
-    # Tk().withdraw
+    # filename = '/home/jelle/Documents/2016 Mar/Jelle/dividends_2016_fiscal_IB_with_Robeco.csv'
+    filename = askopenfilename()
+    Tk().withdraw
     with open(filename, newline='') as dividends_file:
         reader = csv.DictReader(dividends_file)
         for row in reader:
@@ -906,7 +907,6 @@ def get_dividends(tax_year):
                         # Try the next item
 
                 dividend = Dividend(code, date_paid, per_share, gross_paid)
-                print(dividend)
                 dividends.append(dividend)
 
     return dividends
@@ -950,7 +950,7 @@ def process_dividends(shares, dividends):
             share_income_from_dividends += NZD_value
             print(dividend_format_string.format(
                 v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
-                v2=dividend.date_paid, w2=outfmt['date'].width,
+                v2=dividend.date_paid.strftime('%d %b'), w2=outfmt['date'].width,
                 v3=dividend.per_share, w3=outfmt['dividend'].width,
                 v4=dividend.eligible_shares, w4=outfmt['holding'].width,
                 v5=dividend.gross_paid, w5=outfmt['value'].width, p5=outfmt['value'].precision,
@@ -1230,7 +1230,7 @@ def main():
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, tax_year)
 # uncomment next when ready to actually save
-    save_closing_positions(shares)
+#     save_closing_positions(shares)
     save_fx_rates()
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
