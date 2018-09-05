@@ -1186,7 +1186,7 @@ def calc_comparative_value_income(opening_value, cost_of_trades,
     print('{v1:{w1}}{v2:>{w2}}'.format(
             v1 = '', w1 = 55, v2 = 16 * '-', w2 = 20))
     print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
-            v1 = 'CV income', w1 = 55, v2 = CV_income, w2 = 20))
+            v1 = 'Comparative Value income', w1 = 55, v2 = CV_income, w2 = 20))
 
     return CV_income
 
@@ -1197,6 +1197,14 @@ def finish_with_CV_income(CV_income):
     :param CV_income:
     :return:
     """
+    print('\nUse Comparative Value income as basis for FIF income')
+    if CV_income < 0:
+        print('However, FIF income cannot be negative.')
+        FIF_income = 0
+    else:
+        FIF_income = CV_income
+    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
+            v1 = 'FIF income is:', w1 = 55, v2 = FIF_income, w2 = 20))
     return
 
 
@@ -1228,7 +1236,7 @@ def main():
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, tax_year)
 # uncomment next when ready to actually save
-#     save_closing_positions(shares)
+#    save_closing_positions(shares)
     save_fx_rates(fx_rates)
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
