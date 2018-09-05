@@ -887,16 +887,26 @@ def get_dividends(tax_year):
 
                 gross_paid = row['Amount']
                 description = row['Description']
+                # Next 2 statements assume that share code is first item
+                # in description, followed by something between
+                # brackets. There may not be a space before the bracket.
+                # If there is a space before the bracket we need to
+                # strip it from the code.
                 first_split = description.split('(')
                 code = first_split[0].strip()
+                # Following assumes that the value of dividend per
+                # share is the only floating point item in the
+                # text after the first bracket of the description, and
+                # before any next bracket, with a space separating the
+                # items.
                 second_split = first_split[1].split()
                 for item in second_split:
                     try:
                         per_share = float(item)
                         # If we do NOT get a ValueError we have found
                         # what we are looking for. However, we actually
-                        # want the string value, so it can be converted
-                        # to Decimal.
+                        # want the string value, in order to convert
+                        # it to Decimal in the Dividend constructor.
                         per_share = item
                         break
                         # When we find it
@@ -1198,6 +1208,7 @@ def finish_with_CV_income(CV_income):
     :return:
     """
     print('\nUse Comparative Value income as basis for FIF income')
+    print('(Quick Sale Adjustments to FDR income, if any, would only increase the FRD income.)')
     if CV_income < 0:
         print('However, FIF income cannot be negative.')
         FIF_income = 0
