@@ -1201,24 +1201,6 @@ def calc_comparative_value_income(opening_value, cost_of_trades,
     return CV_income
 
 
-def finish_with_CV_income(CV_income):
-    """
-
-    :param CV_income:
-    :return:
-    """
-    print('\nUse Comparative Value income as basis for FIF income')
-    print('(Quick Sale Adjustments to FDR income, if any, would only increase the FRD income.)')
-    if CV_income < 0:
-        print('However, FIF income cannot be negative.')
-        FIF_income = 0
-    else:
-        FIF_income = CV_income
-    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
-            v1 = 'FIF income is:', w1 = 55, v2 = FIF_income, w2 = 20))
-    return
-
-
 def calc_QSA(shares, trades, dividends):
     """
 
@@ -1231,45 +1213,82 @@ def calc_QSA(shares, trades, dividends):
     return quick_sale_adjustments
 
 
-def main():
-    global fx_rates
-    tax_year = 2016  # hard coded for testing
-    #tax_year = get_tax_year()
-    fx_rates = get_fx_rates(fx_rates)
-    shares = get_opening_positions(tax_year)
-    opening_value, FDR_basic_income = process_opening_positions(shares, tax_year)
-    # Need to process trades first, to get info on shares purchased
-    # during the year, which might receive dividends later.
-    trades = get_trades(tax_year)
-    cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
-    dividends = get_dividends(tax_year)
-    gross_income_from_dividends = process_dividends(shares, dividends)
-    closing_prices = get_closing_prices(shares)
-    closing_value = process_closing_prices(shares, closing_prices, tax_year)
-# uncomment next when ready to actually save
-#    save_closing_positions(shares)
-    save_fx_rates(fx_rates)
-
-    CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
-                                  gross_income_from_dividends, closing_value)
-
+def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, trades, dividends):
     print('\nFair Dividend Rate income calculation')
     print('{v1:{w1}.0%}{v2:{w2}}{v3:>{w3},.2f}'.format(
             v1 = Decimal(FAIR_DIVIDEND_RATE), w1 = 2,
             v2 = ' of total opening value', w2 = 53,
             v3 = FDR_basic_income, w3 = 20))
 
-    if CV_income <= FDR_basic_income:
-        finish_with_CV_income(CV_income)
-    else:
-
-        if any_quick_sale_adjustment:
-            quick_sale_adjustments = calc_QSA(shares, trades, dividends)
-        else:
-            quick_sale_adjustments = Decimal('0.00')
-
+    if any_quick_sale_adjustment:
+        quick_sale_adjustments = calc_QSA(shares, trades, dividends)
+        print('{v1:{w1}}{v2:>{w2}}'.format(
+            v1='Quick Sale Adjustments', w1=55, v2='not calculated yet', w2=20))
         FDR_income = FDR_basic_income + quick_sale_adjustments
-        FIF_income = max(0, min(FDR_income, CV_income))
+    else:
+        print('{v1:{w1}}{v2:>{w2}}'.format(
+            v1='Quick Sale Adjustments', w1=55, v2='Not Applicable', w2=20))
+        FDR_income = FDR_basic_income
+
+    print('{v1:{w1}}{v2:>{w2}}'.format(
+            v1 = '', w1 = 55, v2 = 16 * '-', w2 = 20))
+    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
+            v1 = 'Fair Dividend Rate income', w1 = 55, v2 = FDR_income, w2 = 20))
+    return FDR_income
+
+
+def print_FIF_income(CV_income, FDR_income):
+    """
+
+    :param CV_income:
+    :return:
+    """
+    if FDR_income <= CV_income:
+        print('\nUse Fair Dividend Rate income as basis for FIF income')
+        FIF_income = FDR_income
+    else:
+        print('\nUse Comparative Value income as basis for FIF income')
+        if CV_income < 0:
+            print('However, FIF income cannot be negative.')
+            FIF_income = 0
+        else:
+            FIF_income = CV_income
+
+    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
+            v1 = 'FIF income is:', w1 = 55, v2 = FIF_income, w2 = 20))
+    return
+
+
+def main():
+    global fx_rates
+    tax_year = 2016  # hard coded for testing
+    #tax_year = get_tax_year()
+    fx_rates = get_fx_rates(fx_rates)
+
+    shares = get_opening_positions(tax_year)
+    opening_value, FDR_basic_income = process_opening_positions(shares, tax_year)
+
+    # Need to process trades first, to get info on shares purchased
+    # during the year, which might receive dividends later.
+    trades = get_trades(tax_year)
+    cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
+
+    dividends = get_dividends(tax_year)
+    gross_income_from_dividends = process_dividends(shares, dividends)
+
+    closing_prices = get_closing_prices(shares)
+    closing_value = process_closing_prices(shares, closing_prices, tax_year)
+# uncomment next when ready to actually save
+    save_closing_positions(shares)
+
+    CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
+            gross_income_from_dividends, closing_value)
+
+    FDR_income = determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment,
+           shares, trades, dividends)
+
+    print_FIF_income(CV_income, FDR_income)
+    save_fx_rates(fx_rates)
     return
 
 
