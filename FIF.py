@@ -9,7 +9,7 @@ Note that some tax payers may use other methods as well or instead.
 Such other methods are not covered by this program.
 
 by Jelle Sjoerdsma
-July 2018
+September 2018
 version 0.2
 
 No license (yet), but program is intended for public domain and may
@@ -435,7 +435,7 @@ def closing_date(tax_year):
     return date(tax_year, 3, 31)
 
 
-def get_new_fx_rate(currency, fx_date):
+def get_new_fx_rate(currency, fx_date, fx_rates):
     """
     Obtains a foreign exchange rate for the currency and day specified
     in the argument list. The obtained rate is then added to the
@@ -445,6 +445,8 @@ def get_new_fx_rate(currency, fx_date):
     currency: the currency for which we need the exchange rate.
     fx_date: the date for which we need the exchange rate. This must be
         passed in the form of a date object.
+    fx_rates: a nested dictionary with foreign exchange rates by
+        currency and by date (as a date object).
 
     return: the desired foreign exchange rate, as a string.
 
@@ -455,9 +457,6 @@ def get_new_fx_rate(currency, fx_date):
     exchange rate. If the user does that the program will immediately
     do a hard exit.
     """
-    global fx_rates
-    # fx_rates: a nested dictionary with foreign exchange rates by
-    # currency and by date (as a date object).
 
     if fx_date.month == 3 and fx_date.day == 31:
         # Assume we are dealing with tax period closing date. It is
@@ -521,7 +520,7 @@ def FX_rate(currency, fx_date):
     if currency in fx_rates and rate_date in fx_rates[currency]:
         fx_rate = fx_rates[currency][rate_date]
     else:
-        fx_rate = get_new_fx_rate(currency, rate_date)
+        fx_rate = get_new_fx_rate(currency, rate_date, fx_rates)
 
     return Decimal(fx_rate)
 
@@ -551,17 +550,16 @@ def get_new_share_currency_and_full_name(trade):
     return full_name, currency
 
 
-def get_fx_rates(filename='saved_fx_rates.pickle'):
+def get_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
     """
 
     :rtype: object
     :param fx_rates:
     :return:
     """
-    global fx_rates
     with open(filename, 'rb') as fx_rates_save_file:
         fx_rates = pickle.load(fx_rates_save_file)
-    return
+    return fx_rates
 
 
 def get_opening_positions(tax_year):
@@ -1141,14 +1139,13 @@ def save_closing_positions(shares):
     return
 
 
-def save_fx_rates(filename='saved_fx_rates.pickle'):
+def save_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
     """
 
     :rtype: object
     :param fx_rates:
     :return:
     """
-    global fx_rates
     with open(filename, 'wb') as fx_rates_save_file:
         pickle.dump(fx_rates, fx_rates_save_file)
     return
@@ -1211,14 +1208,15 @@ def calc_QSA(shares, trades, dividends):
     quick_sale_adjustments = Decimal('0.00')
     for share in shares:
         if share.quick_sale_adjustments:
-            print('Quick Sale Adjustment for ' + share.code)
+            print('Quick Sale Adjustment needed for ' + share.code)
     return quick_sale_adjustments
 
 
 def main():
+    global fx_rates
     tax_year = 2016  # hard coded for testing
     #tax_year = get_tax_year()
-    get_fx_rates()
+    fx_rates = get_fx_rates(fx_rates)
     shares = get_opening_positions(tax_year)
     opening_value, FDR_basic_income = process_opening_positions(shares, tax_year)
     # Need to process trades first, to get info on shares purchased
@@ -1231,7 +1229,7 @@ def main():
     closing_value = process_closing_prices(shares, closing_prices, tax_year)
 # uncomment next when ready to actually save
 #     save_closing_positions(shares)
-    save_fx_rates()
+    save_fx_rates(fx_rates)
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
                                   gross_income_from_dividends, closing_value)

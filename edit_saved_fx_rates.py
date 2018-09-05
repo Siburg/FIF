@@ -60,14 +60,19 @@ def update_currency_rates(fx_rates):
 
 def main():
     global fx_rates
-    get_fx_rates()
+    fx_rates = get_fx_rates(fx_rates)
     update_made = False
 
     question = 'Would you like to update the list of currency codes in fx_rates?'
     if (yes_or_no(question)):
         update_made = update_codes_in_fx_rates(fx_rates)
 
-    print(fx_rates)
+    for currency in fx_rates:
+        if fx_rates[currency] is None:
+            continue
+        print(currency)
+        for rate in fx_rates[currency]:
+            print(rate, fx_rates[currency][rate])
 
     question = 'Would you like to add or update fx_rate for any specific currency?'
     if (yes_or_no(question)):
@@ -76,7 +81,7 @@ def main():
     if update_made:
         question = 'Would you like to save the updates to fx_rates?'
         if (yes_or_no(question)):
-            save_fx_rates()
+            save_fx_rates(fx_rates)
 
     return
 
