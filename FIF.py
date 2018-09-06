@@ -593,9 +593,10 @@ def get_opening_positions(tax_year):
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
-    filename = '/home/jelle/Documents/ClosingHoldings2015.csv'
+    filename = '/home/jelle/Documents/2016 Mar/Jelle/2016_closing_share_info.csv'
+    # print('Select file with opening positions, i.e. closing share info from the previous year')
     # filename = askopenfilename()
-    # Tk().withdraw
+    Tk().withdraw
     # This is to remove the GUI window that was opened.
     if filename is None:
         print('The program does not have an input file to work with. It is now exiting!')
@@ -722,8 +723,9 @@ def get_trades(tax_year):
     csv file. It may be extended with additional input methods.
     """
     trades = []
-    filename = '/home/jelle/Documents/2016 Mar/Jelle/trades_2016_fiscal_IB_with_Robeco.csv'
+    filename = '/home/jelle/Documents/2017 Mar/Jelle/2017_trades.csv'
 
+    # print('Select csv file with information on trades')
     # filename = askopenfilename()
     # Tk().withdraw
     with open(filename, newline='') as trades_file:
@@ -786,7 +788,7 @@ def process_trades(shares, trades):
     header_format_string = '{v1:{w1}}' + '{v2:{w2}}' + '{v3:>{w3}}' + '{v4:>{w4}}'+ \
         '{v5:>{w5}}' + '{v6:>{w6}}' + '{v7:>{w7}}' + '{v8:>{w8}}' + '{v9:>{w9}}'
     trade_format_string = '{v1:{w1}.{p1}}' + '{v2:{w2}.{p2}}' + '{v3:>{w3},.{p3}f}' + \
-        '{v4:>{w4},}' + '{v5:>{w5},}' + '{v6:>{w6},.{p6}f}' + '{v7:>{w7}}' + \
+        '{v4:>{w4},.{p4}f}' + '{v5:>{w5},}' + '{v6:>{w6},.{p6}f}' + '{v7:>{w7}}' + \
         '{v8:>{w8},.{p8}f}' + '{v9:>{w9},.{p9}f}'
     print('\nTrades: share acquisitions (positive) and disposals (negative)')
     print(header_format_string.format(
@@ -828,17 +830,25 @@ def process_trades(shares, trades):
             # but is there just in case we encounter a bizarre
             # situation where a trade record would be for 0 shares.
 
-        print(trade_format_string.format(
-            v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
-            v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
-                p2=outfmt['date'].precision,
-            v3=trade.trade_costs, w3=outfmt['fees'].width, p3=outfmt['fees'].precision,
-            v4=trade.share_price, w4=outfmt['price'].width,
-            v5=trade.number_of_shares, w5=outfmt['holding'].width,
-            v6=trade.charge, w6=outfmt['value'].width, p6=outfmt['value'].precision,
-            v7=share.currency, w7=outfmt['currency'].width,
-            v8=fx_rate, w8=outfmt['FX rate'].width, p8=outfmt['FX rate'].precision,
-            v9=NZD_value, w9=outfmt['value'].width, p9=outfmt['value'].precision))
+            if trade.share_price.as_tuple().exponent >= -2:
+                price_precision = 2
+            else:
+                price_precision = 4
+            # This works for share_price in Decimal format. If it has
+            # more than 2 digits after the point than limit the print
+            # precision to 4 digits.
+
+            print(trade_format_string.format(
+                v1=share.code, w1=outfmt['code'].width, p1=outfmt['code'].precision,
+                v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
+                    p2=outfmt['date'].precision,
+                v3=trade.trade_costs, w3=outfmt['fees'].width, p3=outfmt['fees'].precision,
+                v4=trade.share_price, w4=outfmt['price'].width, p4=price_precision,
+                v5=trade.number_of_shares, w5=outfmt['holding'].width,
+                v6=trade.charge, w6=outfmt['value'].width, p6=outfmt['value'].precision,
+                v7=share.currency, w7=outfmt['currency'].width,
+                v8=fx_rate, w8=outfmt['FX rate'].width, p8=outfmt['FX rate'].precision,
+                v9=NZD_value, w9=outfmt['value'].width, p9=outfmt['value'].precision))
 
         share.cost_of_trades = share_cost_of_trades
         # update the quick sale adjustment to something else than None
@@ -1009,10 +1019,10 @@ def get_closing_prices(shares):
     """
     closing_prices = []
     closing_price_info = namedtuple('closing_price_info', 'code, price')
-    filename = '/home/jelle/Documents/ClosingPrices2016.csv'
-    #
-    # filename = askopenfilename()
-    # Tk().withdraw
+    # filename = '/home/jelle/Documents/ClosingPrices2016.csv'
+
+    filename = askopenfilename()
+    Tk().withdraw
     with open(filename, newline='') as closing_prices_file:
         reader = csv.DictReader(closing_prices_file)
         for row in reader:
@@ -1261,8 +1271,8 @@ def print_FIF_income(CV_income, FDR_income):
 
 def main():
     global fx_rates
-    tax_year = 2016  # hard coded for testing
-    #tax_year = get_tax_year()
+    # tax_year = 2016  # hard coded for testing
+    tax_year = get_tax_year()
     fx_rates = get_fx_rates(fx_rates)
 
     shares = get_opening_positions(tax_year)
