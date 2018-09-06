@@ -593,7 +593,7 @@ def get_opening_positions(tax_year):
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
-    filename = '/home/jelle/Documents/2016 Mar/Jelle/2016_closing_share_info.csv'
+    filename = '/home/jelle/Documents/2017 Mar/Jelle/2017_closing_share_info.csv'
     # print('Select file with opening positions, i.e. closing share info from the previous year')
     # filename = askopenfilename()
     Tk().withdraw
@@ -723,7 +723,7 @@ def get_trades(tax_year):
     csv file. It may be extended with additional input methods.
     """
     trades = []
-    filename = '/home/jelle/Documents/2017 Mar/Jelle/2017_trades.csv'
+    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_trades.csv'
 
     # print('Select csv file with information on trades')
     # filename = askopenfilename()
@@ -882,9 +882,9 @@ def get_dividends(tax_year):
         dividend received during the tax period. The list may be empty.
     """
     dividends = []
-    # filename = '/home/jelle/Documents/2016 Mar/Jelle/dividends_2016_fiscal_IB_with_Robeco.csv'
-    filename = askopenfilename()
-    Tk().withdraw
+    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_dividends.csv'
+    # filename = askopenfilename()
+    # Tk().withdraw
     with open(filename, newline='') as dividends_file:
         reader = csv.DictReader(dividends_file)
         for row in reader:
@@ -1019,10 +1019,10 @@ def get_closing_prices(shares):
     """
     closing_prices = []
     closing_price_info = namedtuple('closing_price_info', 'code, price')
-    # filename = '/home/jelle/Documents/ClosingPrices2016.csv'
+    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_closing_prices.csv'
 
-    filename = askopenfilename()
-    Tk().withdraw
+    # filename = askopenfilename()
+    # Tk().withdraw
     with open(filename, newline='') as closing_prices_file:
         reader = csv.DictReader(closing_prices_file)
         for row in reader:
@@ -1271,8 +1271,8 @@ def print_FIF_income(CV_income, FDR_income):
 
 def main():
     global fx_rates
-    # tax_year = 2016  # hard coded for testing
-    tax_year = get_tax_year()
+    tax_year = 2018  # hard coded for testing
+    # tax_year = get_tax_year()
     fx_rates = get_fx_rates(fx_rates)
 
     shares = get_opening_positions(tax_year)
@@ -1289,7 +1289,7 @@ def main():
     closing_prices = get_closing_prices(shares)
     closing_value = process_closing_prices(shares, closing_prices, tax_year)
 # uncomment next when ready to actually save
-    save_closing_positions(shares)
+#     save_closing_positions(shares)
 
     CV_income = calc_comparative_value_income(opening_value, cost_of_trades,
             gross_income_from_dividends, closing_value)
