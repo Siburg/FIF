@@ -1219,7 +1219,7 @@ def calc_QSA(share, trades, dividends):
     share_trades = []
     for trade in filter(lambda trade: trade.code == share.code, trades):
         share_trades.append(trade)
-    share_trades.sort(reverse=True, key = lambda trade: trade.date_time)
+    share_trades.sort(reverse=True, key = attrgetter('date_time'))
 
     closing_holding = share.holding
     holding = closing_holding
@@ -1256,7 +1256,7 @@ def calc_QSA(share, trades, dividends):
     share_dividends = []
     for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
         share_dividends.append(dividend)
-    share_dividends.sort(reverse=True, key = lambda dividend: dividend.date_paid)
+    share_dividends.sort(reverse=True, key = attrgetter('date_paid'))
 
     quick_sale_gain = Decimal('9999999999999')
 
