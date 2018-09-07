@@ -1219,21 +1219,26 @@ def calc_QSA(share, trades, dividends):
     share_trades = []
     for trade in filter(lambda trade: trade.code == share.code, trades):
         share_trades.append(trade)
-    share_trades.sort(reverse=True, key = attrgetter('date_time'))
+    share_trades.sort(reverse=False, key = attrgetter('date_time'))
 
     closing_holding = share.holding
-    holding = closing_holding
+    # Because we already traversed all trades when processing them
+    # the first time.
+    holding = share.opening_holding
     peak_holding = Decimal('0')
     acquired_shares = Decimal('0')
     acquisition_costs = Decimal('0.00')
     for trade in share_trades:
-        holding -= trade.number_of_shares
+        if trade.share_price == Decimal('0'):
+            continue
+            # This is intended to weed out quasi-trades, if entered,
+            # that represent transactions such as share splits.
+
+        holding += trade.number_of_shares
         if holding > peak_holding:
             peak_holding = holding
 
-        if trade.number_of_shares > 0 and trade.share_price > 0:
-            # The and condition is to avoid counting share transactions
-            # that were not a trade, e.g. share splits.
+        if trade.number_of_shares > Decimal('0'):
             acquired_shares += trade.number_of_shares
             fx_rate = FX_rate(share.currency, trade.date_time.date())
             acquisition_costs += (trade.charge / fx_rate).quantize(
@@ -1241,17 +1246,42 @@ def calc_QSA(share, trades, dividends):
             # The NZD value has been calculated already. We could store
             # it as an attribute in the Trade instance
 
-    peak_differential = min(peak_holding - holding, peak_holding - closing_holding)
+    if holding != closing_holding:
+        # It normally should be equal after we have run through all
+        # trades again.
+        print('Trades included a transaction with a share price of zero, probably for ' +
+              'a transaction such as a share split.')
+        print('The program cannot calculate the quick sale adjustment for this situation.')
+        return Decimal('0.00')
+        # Exiting early
+        # We could also return a very large number to mess up all
+        # calculations, but that could be annoying.
+
+    peak_differential = min(peak_holding - share.opening_holding, peak_holding - closing_holding)
     average_cost_of_acquisition = acquisition_costs / acquired_shares
     peak_holding_adjustment = (Decimal(FAIR_DIVIDEND_RATE) * peak_differential *
             average_cost_of_acquisition).quantize(Decimal('0.01'), ROUND_HALF_UP)
 
-    print('opening holding: ', holding)
-    print('closing holding: ', closing_holding)
-    print('peak holding: ', peak_holding)
-    print('peak differential (minimum): ', peak_differential)
-    print('average cost of acquisition: ', average_cost_of_acquisition)
-    print('peak holding adjustment: ', peak_holding_adjustment)
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'opening holding: ', w1 = 18,
+            v2 = share.opening_holding, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'closing holding: ', w1 = 18,
+            v2 = closing_holding, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'peak holding: ', w1 = 18,
+            v2 = peak_holding, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'peak differential (minimum): ', w1 = 30,
+            v2 = peak_differential, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.4f}'.format(
+            v1 = 'average cost of acquisition: ', w1 = 30,
+            v2 = average_cost_of_acquisition, w2 = 10))
+    print('{v1:{w1}}{v2:{w2}.0%}{v3:{w3}}{v4:>{w4},.2f}'.format(
+            v1 = 'peak holding adjustment (at ', w1 = 28,
+            v2 = Decimal(FAIR_DIVIDEND_RATE), w2 = 2,
+            v3 = '): ', w3 = 5,
+            v4 = peak_holding_adjustment, w4 = 15))
 
     share_dividends = []
     for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
