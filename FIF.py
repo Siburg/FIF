@@ -1211,16 +1211,56 @@ def calc_comparative_value_income(opening_value, cost_of_trades,
     return CV_income
 
 
-def calc_QSA(shares, trades, dividends):
+def calc_QSA(share, trades, dividends):
     """
 
     :return:
     """
-    quick_sale_adjustments = Decimal('0.00')
-    for share in shares:
-        if share.quick_sale_adjustments:
-            print('Quick Sale Adjustment needed for ' + share.code)
-    return quick_sale_adjustments
+    share_trades = []
+    for trade in filter(lambda trade: trade.code == share.code, trades):
+        share_trades.append(trade)
+    share_trades.sort(reverse=True, key = lambda trade: trade.date_time)
+
+    closing_holding = share.holding
+    holding = closing_holding
+    peak_holding = Decimal('0')
+    acquired_shares = Decimal('0')
+    acquisition_costs = Decimal('0.00')
+    for trade in share_trades:
+        holding -= trade.number_of_shares
+        if holding > peak_holding:
+            peak_holding = holding
+
+        if trade.number_of_shares > 0 and trade.share_price > 0:
+            # The and condition is to avoid counting share transactions
+            # that were not a trade, e.g. share splits.
+            acquired_shares += trade.number_of_shares
+            fx_rate = FX_rate(share.currency, trade.date_time.date())
+            acquisition_costs += (trade.charge / fx_rate).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+            # The NZD value has been calculated already. We could store
+            # it as an attribute in the Trade instance
+
+    peak_differential = min(peak_holding - holding, peak_holding - closing_holding)
+    average_cost_of_acquisition = acquisition_costs / acquired_shares
+    peak_holding_adjustment = (Decimal(FAIR_DIVIDEND_RATE) * peak_differential *
+            average_cost_of_acquisition).quantize(Decimal('0.01'), ROUND_HALF_UP)
+
+    print('opening holding: ', holding)
+    print('closing holding: ', closing_holding)
+    print('peak holding: ', peak_holding)
+    print('peak differential (minimum): ', peak_differential)
+    print('average cost of acquisition: ', average_cost_of_acquisition)
+    print('peak holding adjustment: ', peak_holding_adjustment)
+
+    share_dividends = []
+    for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
+        share_dividends.append(dividend)
+    share_dividends.sort(reverse=True, key = lambda dividend: dividend.date_paid)
+
+    quick_sale_gain = Decimal('9999999999999')
+
+    return min(peak_holding_adjustment, quick_sale_gain)
 
 
 def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, trades, dividends):
@@ -1231,9 +1271,15 @@ def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, tr
             v3 = FDR_basic_income, w3 = 20))
 
     if any_quick_sale_adjustment:
-        quick_sale_adjustments = calc_QSA(shares, trades, dividends)
-        print('{v1:{w1}}{v2:>{w2}}'.format(
-            v1='Quick Sale Adjustments', w1=55, v2='not calculated yet', w2=20))
+        quick_sale_adjustments = Decimal('0.00')
+        for share in shares:
+            if share.quick_sale_adjustments:
+                print('Quick Sale Adjustment for ' + share.code)
+                share_adjustment = calc_QSA(share, trades, dividends)
+                print('{v1:{w1}}{v2:>{w2}}'.format(
+                    v1='Quick Sale Adjustment', w1=55, v2=share_adjustment, w2=20))
+                quick_sale_adjustments += share_adjustment
+
         FDR_income = FDR_basic_income + quick_sale_adjustments
     else:
         print('{v1:{w1}}{v2:>{w2}}'.format(
