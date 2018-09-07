@@ -1274,7 +1274,7 @@ def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, tr
         quick_sale_adjustments = Decimal('0.00')
         for share in shares:
             if share.quick_sale_adjustments:
-                print('Quick Sale Adjustment for ' + share.code)
+                print('\nQuick Sale Adjustment for ' + share.code)
                 share_adjustment = calc_QSA(share, trades, dividends)
                 print('{v1:{w1}}{v2:>{w2}}'.format(
                     v1='Quick Sale Adjustment', w1=55, v2=share_adjustment, w2=20))
