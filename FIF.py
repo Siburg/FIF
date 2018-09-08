@@ -1245,6 +1245,8 @@ def calc_QSA(share, trades, dividends):
                     Decimal('0.01'), ROUND_HALF_UP)
             # The NZD value has been calculated already. We could store
             # it as an attribute in the Trade instance
+        else:
+            pass    # do something for the sold shares
 
     if holding != closing_holding:
         # It normally should be equal after we have run through all
