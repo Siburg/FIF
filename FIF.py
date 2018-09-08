@@ -1286,7 +1286,7 @@ def calc_QSA(share, trades, dividends):
     share_dividends = []
     for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
         share_dividends.append(dividend)
-    share_dividends.sort(reverse=True, key = attrgetter('date_paid'))
+    share_dividends.sort(reverse=False, key = attrgetter('date_paid'))
 
     quick_sale_gain = Decimal('9999999999999')
 
