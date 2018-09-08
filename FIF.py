@@ -1228,6 +1228,8 @@ def calc_QSA(share, trades, dividends):
     peak_holding = Decimal('0')
     acquired_shares = Decimal('0')
     acquisition_costs = Decimal('0.00')
+    quick_sale_shares = Decimal('0')
+    quick_sale_proceeds = Decimal('0.00')
     for trade in share_trades:
         if trade.share_price == Decimal('0'):
             continue
@@ -1238,15 +1240,22 @@ def calc_QSA(share, trades, dividends):
         if holding > peak_holding:
             peak_holding = holding
 
+        fx_rate = FX_rate(share.currency, trade.date_time.date())
+
         if trade.number_of_shares > Decimal('0'):
             acquired_shares += trade.number_of_shares
-            fx_rate = FX_rate(share.currency, trade.date_time.date())
-            acquisition_costs += (trade.charge / fx_rate).quantize(
-                    Decimal('0.01'), ROUND_HALF_UP)
-            # The NZD value has been calculated already. We could store
-            # it as an attribute in the Trade instance
+            acquisition_costs += (trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
         else:
-            pass    # do something for the sold shares
+            shares_sold = -trade.number_of_shares
+            # Changing it to a positive value in this context.
+            quick_sale_portion = min(shares_sold, acquired_shares - quick_sale_shares)
+            # At this point, quick_sale_shares has the previous balance
+            # of (the portions of) shares sold as a quick sale.
+            quick_sale_shares += quick_sale_portion
+            quick_sale_proceeds += ((quick_sale_portion / shares_sold) *
+                    -trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
+            # This will also be a positive value, assuming that the
+            # trade charge will always be negative.
 
     if holding != closing_holding:
         # It normally should be equal after we have run through all
@@ -1263,34 +1272,66 @@ def calc_QSA(share, trades, dividends):
     average_cost_of_acquisition = acquisition_costs / acquired_shares
     peak_holding_adjustment = (Decimal(FAIR_DIVIDEND_RATE) * peak_differential *
             average_cost_of_acquisition).quantize(Decimal('0.01'), ROUND_HALF_UP)
+    quick_sale_costs = (quick_sale_shares * average_cost_of_acquisition).quantize(
+            Decimal('0.01'), ROUND_HALF_UP)
+    quick_sale_gain = quick_sale_proceeds - quick_sale_costs
+
+
+    width1 = 18
+    width2 = 45
 
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'opening holding: ', w1 = 18,
+            v1 = 'shares acquired: ', w1 = width2,
+            v2 = acquired_shares, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'total acquisition costs: ', w1 = width2,
+            v2 = acquisition_costs, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.4f}'.format(
+            v1 = 'average acquisition cost per share: ', w1 = width2,
+            v2 = average_cost_of_acquisition, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'shares sold subject to QSA: ', w1 = width2,
+            v2 = quick_sale_shares, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'proceeds from shares sold subject to QSA: ', w1 = width2,
+            v2 = quick_sale_proceeds, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'costs of those (based on average per share): ', w1 = width2,
+            v2 = quick_sale_costs, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'capital gain/(loss) from quick sales: ', w1 = width2,
+            v2 = quick_sale_gain, w2 = 10))
+    if quick_sale_gain < 0:
+        print('quick sale gain cannot be negative')
+        quick_sale_gain = Decimal('0.00')
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'Quick sale gain: ', w1 = width2,
+            v2 = quick_sale_gain, w2 = 10))
+
+
+    print('{v1:{w1}}{v2:>{w2},}'.format(
+            v1 = 'opening holding: ', w1 = width1,
             v2 = share.opening_holding, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'closing holding: ', w1 = 18,
+            v1 = 'closing holding: ', w1 = width1,
             v2 = closing_holding, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'peak holding: ', w1 = 18,
+            v1 = 'peak holding: ', w1 = width1,
             v2 = peak_holding, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'peak differential (minimum): ', w1 = 30,
+            v1 = 'peak differential (minimum): ', w1 = width2,
             v2 = peak_differential, w2 = 10))
-    print('{v1:{w1}}{v2:>{w2},.4f}'.format(
-            v1 = 'average cost of acquisition: ', w1 = 30,
-            v2 = average_cost_of_acquisition, w2 = 10))
     print('{v1:{w1}}{v2:{w2}.0%}{v3:{w3}}{v4:>{w4},.2f}'.format(
-            v1 = 'peak holding adjustment (at ', w1 = 28,
+            v1 = 'Peak holding adjustment (at ', w1 = 28,
             v2 = Decimal(FAIR_DIVIDEND_RATE), w2 = 2,
-            v3 = '): ', w3 = 5,
-            v4 = peak_holding_adjustment, w4 = 15))
+            v3 = '): ', w3 = width2 - (28 + 2),
+            v4 = peak_holding_adjustment, w4 = 10))
 
-    share_dividends = []
-    for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-        share_dividends.append(dividend)
-    share_dividends.sort(reverse=False, key = attrgetter('date_paid'))
+    # share_dividends = []
+    # for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
+    #     share_dividends.append(dividend)
+    # share_dividends.sort(reverse=False, key = attrgetter('date_paid'))
 
-    quick_sale_gain = Decimal('9999999999999')
 
     return min(peak_holding_adjustment, quick_sale_gain)
 
