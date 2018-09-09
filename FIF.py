@@ -33,6 +33,7 @@ import dateutil.parser
 
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
+tax_year = 2018  # hard coded for testing
 item_format = namedtuple('item_output_format', 'header, width, precision')
 outfmt = {'code': item_format('share code', 16, 16),
                  'full_name': item_format('name / description', 27, 27),
@@ -399,6 +400,7 @@ def get_tax_year():
     allows the user to enter "quit", instead of a year. If the user
     does that the program will immediately do a hard exit.
     """
+    global tax_year
     prompt = 'Enter the year in which the income tax period ends: '
     again = '\nPlease try again (or enter "quit" without quotation marks to exit): '
 
@@ -434,11 +436,11 @@ def get_tax_year():
     return tax_year
 
 
-def previous_closing_date(tax_year):
+def previous_closing_date():
     return date(tax_year - 1, 3, 31)
 
 
-def closing_date(tax_year):
+def closing_date():
     return date(tax_year, 3, 31)
 
 
@@ -569,14 +571,12 @@ def get_fx_rates(fx_rates, filename='saved_fx_rates.pickle'):
     return fx_rates
 
 
-def get_opening_positions(tax_year):
+def get_opening_positions():
     """
     Creates the list of shares with opening positions that will be used
     as starting point for all subsequent processing.
 
-    input arguments:
-    tax_year: the year in which the tax period ends. This must be
-        provided as an integer.
+    input arguments: none
 
     return:
     opening_positions: list of Share instances with information for each
@@ -630,7 +630,7 @@ def get_opening_positions(tax_year):
     return opening_positions
 
 
-def process_opening_positions(opening_shares, tax_year):
+def process_opening_positions(opening_shares):
     """
     Calculates NZD value of each share held at opening, sets that value
     for the share, and calculates total NZD value across shares. Also
@@ -641,8 +641,6 @@ def process_opening_positions(opening_shares, tax_year):
     input arguments:
     opening_shares: list of shares, as obtained from
         get_opening_positions (i.e. without any updates from trades)
-    tax_year: the year in which the tax period ends. This must be
-        provided as an integer.
 
     return: (tuple with)
     total_opening_value: in NZD
@@ -680,7 +678,7 @@ def process_opening_positions(opening_shares, tax_year):
         # currency, before additional rounding below. This can only
         # be an issue for shares with fractional holdings.
 
-        fx_rate = FX_rate(share.currency, previous_closing_date(tax_year))
+        fx_rate = FX_rate(share.currency, previous_closing_date())
         NZD_value = (foreign_value / fx_rate).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
         # Make this a separate rounding as well.
@@ -713,13 +711,11 @@ def process_opening_positions(opening_shares, tax_year):
     return total_opening_value, FDR_basic_income
 
 
-def get_trades(tax_year):
+def get_trades():
     """
     Creates the list of share trades that took place, if any.
 
-    input arguments:
-    tax_year: the year in which the tax period ends. This must be
-        provided as an integer.
+    input arguments: none
 
     return:
     trades: list of Trade instances with information for each
@@ -745,7 +741,7 @@ def get_trades(tax_year):
 
             trade_date_time = dateutil.parser.parse(row['Date/Time'], yearfirst=True)
 
-            if previous_closing_date(tax_year) < trade_date_time.date() <= closing_date(tax_year):
+            if previous_closing_date() < trade_date_time.date() <= closing_date():
                 # Strictly speaking this test should be unnecssary, but
                 # we just want to make sure we only deal with trades
                 # falling inside the tax year.
@@ -875,14 +871,12 @@ def process_trades(shares, trades):
     return total_cost_of_trades, any_quick_sale_adjustment
 
 
-def get_dividends(tax_year):
+def get_dividends():
     """
     Creates the list with information on dividends received during the
     tax period.
 
-    input arguments:
-    tax_year: the year in which the tax period ends. This must be
-        provided as an integer.
+    input arguments: none
 
     return:
     dividends: list of Dividend instances with information for each
@@ -897,7 +891,7 @@ def get_dividends(tax_year):
         for row in reader:
             # use row fields as defined in Interactive Brokers csv output
             date_paid = dateutil.parser.parse(row['Date'], yearfirst=True).date()
-            if previous_closing_date(tax_year) < date_paid <= closing_date(tax_year):
+            if previous_closing_date() < date_paid <= closing_date():
                 # Strictly speaking this test should be unnecssary, but
                 # we just want to make sure we only deal with dividends
                 # falling inside the tax year.
@@ -1043,7 +1037,7 @@ def get_closing_prices(shares):
     return closing_prices
 
 
-def process_closing_prices(shares, closing_prices, tax_year):
+def process_closing_prices(shares, closing_prices):
     """
 
     :param shares:
@@ -1090,7 +1084,7 @@ def process_closing_prices(shares, closing_prices, tax_year):
                 # currency, before additional rounding below. This can only
                 # be an issue for shares with fractional holdings.
 
-                fx_rate = FX_rate(share.currency, closing_date(tax_year))
+                fx_rate = FX_rate(share.currency, closing_date())
                 NZD_value = (foreign_value / fx_rate).quantize(
                     Decimal('0.01'), ROUND_HALF_UP)
                 # Make this a separate rounding as well.
@@ -1279,11 +1273,18 @@ def calc_QSA(share, trades, dividends):
         # We could also return a very large number to mess up all
         # calculations, but that could be annoying.
 
+    share_dividends = []
+    for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
+        share_dividends.append(dividend)
+    share_dividends.sort(reverse=True, key = attrgetter('date_paid'))
+
     share_trades.sort(reverse=True, key = attrgetter('date_time'))
     # We are now going to traverse the share trades again, but this
     # time in reverse order by date so that we can find the portion of
     # each individual acquisition that contributed to a later quick
-    # sale.
+    # sale, and then calculate the dividend income on the quick sale
+    # holding balances.
+    end_date = closing_date()
     quick_sale_balance = Decimal('0')
     for trade in share_trades:
         if trade.number_of_shares < Decimal('0'):
@@ -1304,7 +1305,6 @@ def calc_QSA(share, trades, dividends):
     quick_sale_costs = (quick_sale_shares * average_cost_of_acquisition).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
     quick_sale_gain = quick_sale_proceeds - quick_sale_costs
-
 
     width1 = 18
     width2 = 45
@@ -1355,11 +1355,6 @@ def calc_QSA(share, trades, dividends):
             v2 = Decimal(FAIR_DIVIDEND_RATE), w2 = 2,
             v3 = '): ', w3 = width2 - (28 + 2),
             v4 = peak_holding_adjustment, w4 = 10))
-
-    # share_dividends = []
-    # for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-    #     share_dividends.append(dividend)
-    # share_dividends.sort(reverse=False, key = attrgetter('date_paid'))
 
     quick_sale_adjustment = min(peak_holding_adjustment, quick_sale_gain)
     share.quick_sale_adjustment = quick_sale_adjustment
@@ -1420,23 +1415,23 @@ def print_FIF_income(CV_income, FDR_income):
 
 def main():
     global fx_rates
-    tax_year = 2018  # hard coded for testing
+    global tax_year
     # tax_year = get_tax_year()
     fx_rates = get_fx_rates(fx_rates)
 
-    shares = get_opening_positions(tax_year)
-    opening_value, FDR_basic_income = process_opening_positions(shares, tax_year)
+    shares = get_opening_positions()
+    opening_value, FDR_basic_income = process_opening_positions(shares)
 
     # Need to process trades first, to get info on shares purchased
     # during the year, which might receive dividends later.
-    trades = get_trades(tax_year)
+    trades = get_trades()
     cost_of_trades, any_quick_sale_adjustment = process_trades(shares, trades)
 
-    dividends = get_dividends(tax_year)
+    dividends = get_dividends()
     gross_income_from_dividends = process_dividends(shares, dividends)
 
     closing_prices = get_closing_prices(shares)
-    closing_value = process_closing_prices(shares, closing_prices, tax_year)
+    closing_value = process_closing_prices(shares, closing_prices)
 # uncomment next when ready to actually save
 #     save_closing_positions(shares)
 
