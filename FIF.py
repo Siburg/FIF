@@ -36,7 +36,7 @@ FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 tax_year = 2018  # hard coded for testing
 item_format = namedtuple('item_output_format', 'header, width, precision')
 outfmt = {'code': item_format('share code', 16, 16),
-                 'full_name': item_format('name / description', 27, 27),
+                 'full_name': item_format('name / description', 28, 28),
                  'price': item_format('price', 10, 999),
                  'holding': item_format('shares', 13, 999),
                  # Next 2 lines are a bit of kludge to combine
@@ -47,8 +47,9 @@ outfmt = {'code': item_format('share code', 16, 16),
                  'value': item_format('value', 16, 2), 'currency': item_format(' cur', 4, 4),
                  'FX rate': item_format('rency rate', 10, 4),
                  'fees': item_format('fees', 12, 2),
-                 'date': item_format(' date ( & time)', 15, 15),
-                 'dividend': item_format('gross dividend', 22, 999), 'total width': 112}
+                 'date': item_format(' date ( & time)', 16, 16),
+                 'dividend': item_format('gross dividend', 22, 999),
+                'total width': 113}
 fx_rates = {}
 """
     All foreign exchange rates, here and in any other function, must be
@@ -1277,7 +1278,7 @@ def calc_QSA(share, trades, dividends):
     # We are now going to traverse the share trades again, but this
     # time in reverse order by date so that we can find the portion of
     # each individual acquisition that contributed to a later quick
-    # sale, and then calculate the dividend income on the quick sale
+    # sale, and calculate the dividend income on the quick sale
     # holding balances.
     share_dividends = []
     for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
@@ -1303,10 +1304,20 @@ def calc_QSA(share, trades, dividends):
                 # because the quick_sale_balance is an artificial
                 # construct; it does not represent an actual payment.
                 dividends_gain += dividend_value
-                print('dividend ', dividend.date_paid, dividend.per_share, dividend_value)
+                print('{v1:{w1}}{v2:{w2}}{v3:>{w3}}{v4:>{w4},.2f}'.format(
+                    v1='dividend', w1=12,
+                    v2=dividend.date_paid.strftime('%d %b'), w2=outfmt['date'].width,
+                    v3=dividend.per_share, w3=outfmt['dividend'].width,
+                    v4=dividend_value, w4=10))
 
         if trade.number_of_shares < Decimal('0'):
             quick_sale_balance += trade.quick_sale_portion
+            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},}{v5:>{w5},}'.format(
+                v1='sale', w1=12,
+                v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
+                v3=trade.number_of_shares, w3=outfmt['holding'].width,
+                v4=trade.quick_sale_portion, w4=outfmt['holding'].width,
+                v5=quick_sale_balance, w5=outfmt['holding'].width))
         else:
             quick_sale_portion = min(trade.number_of_shares, quick_sale_balance)
             trade.quick_sale_portion = quick_sale_portion
@@ -1314,7 +1325,12 @@ def calc_QSA(share, trades, dividends):
             # acquisition also has a Decimal value (which could be
             # zero). It will no longer be None.
             quick_sale_balance -= quick_sale_portion
-        print(trade.date_time, trade.number_of_shares, trade.quick_sale_portion, quick_sale_balance)
+            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},}{v5:>{w5},}'.format(
+                v1='acquisition', w1=12,
+                v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
+                v3=trade.number_of_shares, w3=outfmt['holding'].width,
+                v4=trade.quick_sale_portion, w4=outfmt['holding'].width,
+                v5=quick_sale_balance, w5=outfmt['holding'].width))
         end_date = start_date
 
     peak_differential = min(peak_holding - share.opening_holding, peak_holding - closing_holding)
@@ -1359,7 +1375,6 @@ def calc_QSA(share, trades, dividends):
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
             v1 = 'Quick sale gain: ', w1 = width2,
             v2 = quick_sale_gain, w2 = 10))
-
 
     print('{v1:{w1}}{v2:>{w2},}'.format(
             v1 = 'opening holding: ', w1 = width1,
