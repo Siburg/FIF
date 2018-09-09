@@ -1280,6 +1280,27 @@ def calc_QSA(share, trades, dividends):
     # This is not necessary for the calculation, but it allows any
     # print out to be in the same reverse order by date as trades.
 
+
+    print('{v1:>{w1}}{v2:>{w2}}{v3:>{w3}}{v4:>{w4}}{v5:>{w5}}{v6:>{w6}}'.format(
+            v1 = 'acquisition', w1 = 53,
+            v2 = 'quick', w2 = 10,
+            v3 = 'quick sale', w3 = 15,
+            v4 = 'quick', w4 = 10,
+            v5 = 'dividend', w5 = 15,
+            v6 = 'dividend', w6 = 10))
+
+    header2_format_string = '{v1:{w1}}{v2:{w2}}{v3:>{w3}}{v4:>{w4}}{v5:>{w5}}{v6:>{w6}}' + \
+            '{v7:>{w7}}{v8:>{w8}}{v9:>{w9}}'
+    print(header2_format_string.format(
+            v1 = 'transaction', w1 = 12,
+            v2 = 'date (and time)', w2 = 16,
+            v3 = 'shares', w3 = 10,
+            v4 = 'cost', w4 = 15,
+            v5 = 'sale', w5 = 10,
+            v6 = 'proceeds', w6 = 15,
+            v7 = 'balance', w7 = 10,
+            v8 = 'per share', w8 = 15,
+            v9 = 'gain', w9 = 10))
     print(113*'-')
 
     end_date = closing_date()
