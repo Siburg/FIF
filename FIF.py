@@ -1423,7 +1423,7 @@ def calc_QSA(share, trades, dividends):
 
     quick_sale_adjustment = min(peak_holding_adjustment, quick_sale_gain)
     share.quick_sale_adjustment = quick_sale_adjustment
-    print('\n{v1:{w1}}{v2:{w2}}{v3:>{w3},.2f}'.format(
+    print('\n{v1:{w1}}{v2:{w2}}{v3:>{w3},.2f}\n'.format(
         v1='Quick Sale Adjustment (minimum of Quick sale gain and ' +
                 'Peak holding adjustment) for ', w1=81,
         v2=share.code, w2=15,
