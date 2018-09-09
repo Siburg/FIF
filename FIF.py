@@ -1194,21 +1194,21 @@ def calc_comparative_value_income(opening_value, cost_of_trades,
 
     print('\nComparative Value income calculation')
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'total closing value', w1 = 55, v2 = closing_value, w2 = 20))
+            v1 = 'total closing value', w1 = 93, v2 = closing_value, w2 = 20))
     # Need to amend below to show net income from dividends
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'total gross income from dividends', w1 = 55,
+            v1 = 'total gross income from dividends', w1 = 93,
             v2 = gross_income_from_dividends, w2 = 20))
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'net proceeds from disposals/(costs of acquisitions)', w1 = 55,
+            v1 = 'net proceeds from disposals/(costs of acquisitions)', w1 = 93,
             v2 = -cost_of_trades, w2 = 20))
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'total opening value', w1 = 55,
+            v1 = 'total opening value', w1 = 93,
             v2 = -opening_value, w2 = 20))
     print('{v1:{w1}}{v2:>{w2}}'.format(
-            v1 = '', w1 = 55, v2 = 16 * '-', w2 = 20))
+            v1 = '', w1 = 93, v2 = 16 * '-', w2 = 20))
     print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
-            v1 = 'Comparative Value income', w1 = 55, v2 = CV_income, w2 = 20))
+            v1 = 'Comparative Value income', w1 = 93, v2 = CV_income, w2 = 20))
 
     return CV_income
 
@@ -1229,9 +1229,7 @@ def calc_QSA(share, trades, dividends):
     holding = share.opening_holding
     peak_holding = Decimal('0')
     acquired_shares = Decimal('0')
-    acquisition_costs = Decimal('0.00')
     quick_sale_shares = Decimal('0')
-    quick_sale_proceeds = Decimal('0.00')
     for trade in share_trades:
         if trade.share_price == Decimal('0'):
             continue
@@ -1242,26 +1240,19 @@ def calc_QSA(share, trades, dividends):
         if holding > peak_holding:
             peak_holding = holding
 
-        fx_rate = FX_rate(share.currency, trade.date_time.date())
-
         if trade.number_of_shares > Decimal('0'):
             acquired_shares += trade.number_of_shares
-            acquisition_costs += (trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
         else:
-            shares_sold = -trade.number_of_shares
-            # Changing it to a positive value in this context.
-            quick_sale_portion = min(shares_sold, acquired_shares - quick_sale_shares)
+            quick_sale_portion = min(-trade.number_of_shares, acquired_shares - quick_sale_shares)
             # At this point, quick_sale_shares has the previous balance
             # of (the portions of) shares sold as a quick sale.
+            # Note the minus sign in front of trade.number of shares.
+            # The quick_sale_portion will have a non-negative value.
             trade.quick_sale_portion = quick_sale_portion
             # After this, trade.quick_sale_portion for each share
             # disposal has a Decimal value (which could be zero). It
             # will no longer be None.
             quick_sale_shares += quick_sale_portion
-            quick_sale_proceeds += ((quick_sale_portion / shares_sold) *
-                    -trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
-            # This will also be a positive value, assuming that the
-            # trade charge will always be negative.
 
     if holding != closing_holding:
         # It normally should be equal after we have run through all
@@ -1289,11 +1280,17 @@ def calc_QSA(share, trades, dividends):
     # This is not necessary for the calculation, but it allows any
     # print out to be in the same reverse order by date as trades.
 
+    print(113*'-')
+
     end_date = closing_date()
     quick_sale_balance = Decimal('0')
     dividends_gain = Decimal('0.00')
+    acquisitions_total = Decimal('0.00')
+    quick_sale_total = Decimal('0.00')
+
     for trade in share_trades:
         start_date = trade.date_time.date()
+
         if quick_sale_balance > Decimal('0'):
             for dividend in filter(lambda dividend: start_date <= dividend.date_paid < end_date,
                     share_dividends):
@@ -1307,74 +1304,80 @@ def calc_QSA(share, trades, dividends):
                 print('{v1:{w1}}{v2:{w2}}{v3:>{w3}}{v4:>{w4},.2f}'.format(
                     v1='dividend', w1=12,
                     v2=dividend.date_paid.strftime('%d %b'), w2=outfmt['date'].width,
-                    v3=dividend.per_share, w3=outfmt['dividend'].width,
+                    v3=dividend.per_share, w3=75,
                     v4=dividend_value, w4=10))
 
+        fx_rate = FX_rate(share.currency, trade.date_time.date())
+
         if trade.number_of_shares < Decimal('0'):
+            quick_sale_result = ((trade.quick_sale_portion / -trade.number_of_shares) *
+                    -trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
+            # This will be a positive value, assuming that the trade
+            # charge will always be negative.
+            quick_sale_total += quick_sale_result
             quick_sale_balance += trade.quick_sale_portion
-            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},}{v5:>{w5},}'.format(
+            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},}{v5:>{w5},.2f}{v6:>{w6},}'.format(
                 v1='sale', w1=12,
                 v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
-                v3=trade.number_of_shares, w3=outfmt['holding'].width,
-                v4=trade.quick_sale_portion, w4=outfmt['holding'].width,
-                v5=quick_sale_balance, w5=outfmt['holding'].width))
+                v3=trade.number_of_shares, w3=10,
+                v4=trade.quick_sale_portion, w4=25,
+                v5=quick_sale_result, w5 = 15,
+                v6=quick_sale_balance, w6=10))
         else:
+            acquisition_cost = (trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
+            acquisitions_total += acquisition_cost
             quick_sale_portion = min(trade.number_of_shares, quick_sale_balance)
             trade.quick_sale_portion = quick_sale_portion
             # After this, trade.quick_sale_portion for each share
             # acquisition also has a Decimal value (which could be
             # zero). It will no longer be None.
             quick_sale_balance -= quick_sale_portion
-            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},}{v5:>{w5},}'.format(
+            print('{v1:{w1}}{v2:{w2}}{v3:>{w3},}{v4:>{w4},.2f}{v5:>{w5},}'.format(
                 v1='acquisition', w1=12,
                 v2=trade.date_time.strftime('%d %b %X'), w2=outfmt['date'].width,
-                v3=trade.number_of_shares, w3=outfmt['holding'].width,
-                v4=trade.quick_sale_portion, w4=outfmt['holding'].width,
-                v5=quick_sale_balance, w5=outfmt['holding'].width))
+                v3=trade.number_of_shares, w3=10,
+                v4=acquisition_cost, w4=15,
+                v5=quick_sale_balance, w5=35))
+
         end_date = start_date
 
+    print(113*'-')
+    print('{v1:{w1}}{v2:{w2},.2f}{v3:{w3},}{v4:>{w4},.2f}{v5:>{w5},.2f}\n'.format(
+        v1='total values (NZD)', w1=38,
+        v2=acquisitions_total, w2=15,
+        v3=quick_sale_shares, w3=10,
+        v4=quick_sale_total, w4=15,
+        v5=dividends_gain, w5=35))
+
     peak_differential = min(peak_holding - share.opening_holding, peak_holding - closing_holding)
-    average_cost_of_acquisition = acquisition_costs / acquired_shares
+    average_cost_of_acquisition = acquisitions_total / acquired_shares
     peak_holding_adjustment = (Decimal(FAIR_DIVIDEND_RATE) * peak_differential *
             average_cost_of_acquisition).quantize(Decimal('0.01'), ROUND_HALF_UP)
     quick_sale_costs = (quick_sale_shares * average_cost_of_acquisition).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
-    capital_gain = quick_sale_proceeds - quick_sale_costs
+    capital_gain = quick_sale_total - quick_sale_costs
     quick_sale_gain = capital_gain + dividends_gain
 
-    width1 = 18
-    width2 = 45
-
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'shares acquired: ', w1 = width2,
+            v1 = 'shares acquired: ', w1 = 28,
             v2 = acquired_shares, w2 = 10))
-    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'total acquisition costs: ', w1 = width2,
-            v2 = acquisition_costs, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},.4f}'.format(
-            v1 = 'average acquisition cost per share: ', w1 = width2,
-            v2 = average_cost_of_acquisition, w2 = 10))
-    print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'shares sold subject to QSA: ', w1 = width2,
-            v2 = quick_sale_shares, w2 = 10))
+            v1 = 'average acquisition cost per share: ', w1 = 38,
+            v2 = average_cost_of_acquisition, w2 = 15))
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'proceeds from shares sold subject to QSA: ', w1 = width2,
-            v2 = quick_sale_proceeds, w2 = 10))
+            v1 = 'cost of quick sales (based on average cost of acquisition): ', w1 = 63,
+            v2 = quick_sale_costs, w2 = 15))
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'costs of those (based on average per share): ', w1 = width2,
-            v2 = quick_sale_costs, w2 = 10))
-    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'capital gain/(loss) from quick sales: ', w1 = width2,
-            v2 = capital_gain, w2 = 10))
-    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'dividends on quick sale balances: ', w1 = width2,
-            v2 = dividends_gain, w2 = 10))
+            v1 = 'capital gain/(loss) from quick sales: ', w1 = 63,
+            v2 = capital_gain, w2 = 15))
     if quick_sale_gain < Decimal(0):
-        print('quick sale gain cannot be negative')
+        print('Quick sale gain cannot be negative')
         quick_sale_gain = Decimal('0.00')
-    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
-            v1 = 'Quick sale gain: ', w1 = width2,
-            v2 = quick_sale_gain, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
+            v1 = 'Quick sale gain (including dividend gain): ', w1 = 98,
+            v2 = quick_sale_gain, w2 = 15))
+
+    width1 = 28
 
     print('{v1:{w1}}{v2:>{w2},}'.format(
             v1 = 'opening holding: ', w1 = width1,
@@ -1386,46 +1389,56 @@ def calc_QSA(share, trades, dividends):
             v1 = 'peak holding: ', w1 = width1,
             v2 = peak_holding, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},}'.format(
-            v1 = 'peak differential (minimum): ', w1 = width2,
-            v2 = peak_differential, w2 = 10))
+            v1 = 'peak differential (minimum): ', w1 = width1 + 2,
+            v2 = peak_differential, w2 = 8))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'cost of peak differential: ', w1 = width1 + 10,
+            v2 = peak_differential * average_cost_of_acquisition, w2 = 15))
     print('{v1:{w1}}{v2:{w2}.0%}{v3:{w3}}{v4:>{w4},.2f}'.format(
             v1 = 'Peak holding adjustment (at ', w1 = 28,
             v2 = Decimal(FAIR_DIVIDEND_RATE), w2 = 2,
-            v3 = '): ', w3 = width2 - (28 + 2),
-            v4 = peak_holding_adjustment, w4 = 10))
+            v3 = '): ', w3 = 68,
+            v4 = peak_holding_adjustment, w4 = 15))
 
     quick_sale_adjustment = min(peak_holding_adjustment, quick_sale_gain)
     share.quick_sale_adjustment = quick_sale_adjustment
+    print('\n{v1:{w1}}{v2:{w2}}{v3:>{w3},.2f}'.format(
+        v1='Quick Sale Adjustment (minimum of Quick sale gain and ' +
+                'Peak holding adjustment) for ', w1=81,
+        v2=share.code, w2=15,
+        v3=quick_sale_adjustment, w3=15))
+
     return quick_sale_adjustment
 
 
 def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, trades, dividends):
     print('\nFair Dividend Rate income calculation')
-    print('{v1:{w1}.0%}{v2:{w2}}{v3:>{w3},.2f}'.format(
-            v1 = Decimal(FAIR_DIVIDEND_RATE), w1 = 2,
-            v2 = ' of total opening value', w2 = 53,
-            v3 = FDR_basic_income, w3 = 20))
-
     if any_quick_sale_adjustment:
         quick_sale_adjustments = Decimal('0.00')
         for share in shares:
             if share.quick_sale_adjustment:
-                print('\nQuick Sale Adjustment for ' + share.code)
+                print('\nQuick Sale Adjustment calculations for ' + share.code)
                 share_adjustment = calc_QSA(share, trades, dividends)
-                print('{v1:{w1}}{v2:>{w2}}'.format(
-                    v1='Quick Sale Adjustment', w1=55, v2=share_adjustment, w2=20))
                 quick_sale_adjustments += share_adjustment
 
+        print('\n{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1='Total value of Quick Sale Adjustments', w1=93,
+            v2=quick_sale_adjustments, w2=20))
         FDR_income = FDR_basic_income + quick_sale_adjustments
     else:
-        print('{v1:{w1}}{v2:>{w2}}'.format(
-            v1='Quick Sale Adjustments', w1=55, v2='Not Applicable', w2=20))
+        print('{v1:{w1}}'.format(
+            v1='Quick Sale Adjustments are not necessary', w1=55))
         FDR_income = FDR_basic_income
 
+    print('{v1:{w1}.0%}{v2:{w2}}{v3:>{w3},.2f}'.format(
+            v1 = Decimal(FAIR_DIVIDEND_RATE), w1 = 2,
+            v2 = ' of total opening value', w2 = 91,
+            v3 = FDR_basic_income, w3 = 20))
+
     print('{v1:{w1}}{v2:>{w2}}'.format(
-            v1 = '', w1 = 55, v2 = 16 * '-', w2 = 20))
+            v1 = '', w1 = 93, v2 = 16 * '-', w2 = 20))
     print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
-            v1 = 'Fair Dividend Rate income', w1 = 55, v2 = FDR_income, w2 = 20))
+            v1 = 'Fair Dividend Rate income', w1 = 93, v2 = FDR_income, w2 = 20))
     return FDR_income
 
 
@@ -1447,7 +1460,7 @@ def print_FIF_income(CV_income, FDR_income):
             FIF_income = CV_income
 
     print('{v1:{w1}}{v2:>{w2},.2f}\n'.format(
-            v1 = 'FIF income is:', w1 = 55, v2 = FIF_income, w2 = 20))
+            v1 = 'FIF income is:', w1 = 93, v2 = FIF_income, w2 = 20))
     return
 
 
