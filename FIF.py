@@ -1273,20 +1273,29 @@ def calc_QSA(share, trades, dividends):
         # We could also return a very large number to mess up all
         # calculations, but that could be annoying.
 
-    share_dividends = []
-    for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
-        share_dividends.append(dividend)
-    share_dividends.sort(reverse=True, key = attrgetter('date_paid'))
-
     share_trades.sort(reverse=True, key = attrgetter('date_time'))
     # We are now going to traverse the share trades again, but this
     # time in reverse order by date so that we can find the portion of
     # each individual acquisition that contributed to a later quick
     # sale, and then calculate the dividend income on the quick sale
     # holding balances.
+    share_dividends = []
+    for dividend in filter(lambda dividend: dividend.code == share.code, dividends):
+        share_dividends.append(dividend)
+    # This is a first filter on dividends. It may save time for the
+    # second filter we will use later.
+    share_dividends.sort(reverse=True, key = attrgetter('date_paid'))
+    # This is not necessary for the calculation, but it allows any
+    # print out to be in the same reverse order by date as trades.
+
     end_date = closing_date()
     quick_sale_balance = Decimal('0')
     for trade in share_trades:
+        start_date = trade.date_time.date()
+        for dividend in filter(lambda dividend:
+                start_date <= dividend.date_paid < end_date, share_dividends):
+            print(dividend)
+
         if trade.number_of_shares < Decimal('0'):
             quick_sale_balance += trade.quick_sale_portion
         else:
@@ -1297,6 +1306,7 @@ def calc_QSA(share, trades, dividends):
             # zero). It will no longer be None.
             quick_sale_balance -= quick_sale_portion
         print(trade.date_time, trade.number_of_shares, trade.quick_sale_portion, quick_sale_balance)
+        end_date = start_date
 
     peak_differential = min(peak_holding - share.opening_holding, peak_holding - closing_holding)
     average_cost_of_acquisition = acquisition_costs / acquired_shares
