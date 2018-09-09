@@ -1290,11 +1290,20 @@ def calc_QSA(share, trades, dividends):
 
     end_date = closing_date()
     quick_sale_balance = Decimal('0')
+    dividends_gain = Decimal('0.00')
     for trade in share_trades:
         start_date = trade.date_time.date()
-        for dividend in filter(lambda dividend:
-                start_date <= dividend.date_paid < end_date, share_dividends):
-            print(dividend)
+        if quick_sale_balance > Decimal('0'):
+            for dividend in filter(lambda dividend: start_date <= dividend.date_paid < end_date,
+                    share_dividends):
+                fx_rate = FX_rate(share.currency, dividend.date_paid)
+                dividend_value = (quick_sale_balance * dividend.per_share / fx_rate).quantize(
+                    Decimal('0.01'), ROUND_HALF_UP)
+                # We are not doing an intermediate rounding step,
+                # because the quick_sale_balance is an artificial
+                # construct; it does not represent an actual payment.
+                dividends_gain += dividend_value
+                print('dividend ', dividend.date_paid, dividend.per_share, dividend_value)
 
         if trade.number_of_shares < Decimal('0'):
             quick_sale_balance += trade.quick_sale_portion
@@ -1314,7 +1323,8 @@ def calc_QSA(share, trades, dividends):
             average_cost_of_acquisition).quantize(Decimal('0.01'), ROUND_HALF_UP)
     quick_sale_costs = (quick_sale_shares * average_cost_of_acquisition).quantize(
             Decimal('0.01'), ROUND_HALF_UP)
-    quick_sale_gain = quick_sale_proceeds - quick_sale_costs
+    capital_gain = quick_sale_proceeds - quick_sale_costs
+    quick_sale_gain = capital_gain + dividends_gain
 
     width1 = 18
     width2 = 45
@@ -1339,8 +1349,11 @@ def calc_QSA(share, trades, dividends):
             v2 = quick_sale_costs, w2 = 10))
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
             v1 = 'capital gain/(loss) from quick sales: ', w1 = width2,
-            v2 = quick_sale_gain, w2 = 10))
-    if quick_sale_gain < 0:
+            v2 = capital_gain, w2 = 10))
+    print('{v1:{w1}}{v2:>{w2},.2f}'.format(
+            v1 = 'dividends on quick sale balances: ', w1 = width2,
+            v2 = dividends_gain, w2 = 10))
+    if quick_sale_gain < Decimal(0):
         print('quick sale gain cannot be negative')
         quick_sale_gain = Decimal('0.00')
     print('{v1:{w1}}{v2:>{w2},.2f}'.format(
