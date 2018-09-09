@@ -63,26 +63,26 @@ class TestShare(unittest.TestCase):
         self.assertEqual(self.robeco.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.someshare.cost_of_trades, Decimal('0'))
         self.assertEqual(self.emb.closing_value, Decimal('0'))
-        self.assertIs(self.robeco.quick_sale_adjustments, None)
+        self.assertIs(self.robeco.quick_sale_adjustment, None)
 
     def test_re_initialise_with_prior_year_closing_values(self):
-        self.someshare.quick_sale_adjustments = 1
+        self.someshare.quick_sale_adjustment = 1
         self.emb.closing_price = Decimal('1200')
         self.emb.closing_value = Decimal('2400000')
         self.emb.holding = Decimal('2000')
         self.emb.gross_income_from_dividends = Decimal('1234')
         self.emb.cost_of_trades = Decimal('1100000')
-        self.emb.quick_sale_adjustments = Decimal('99')
+        self.emb.quick_sale_adjustment = Decimal('99')
         self.someshare.re_initialise_with_prior_year_closing_values()
         self.emb.re_initialise_with_prior_year_closing_values()
-        #self.assertEqual(self.someshare.quick_sale_adjustments, 1)
+        #self.assertEqual(self.someshare.quick_sale_adjustment, 1)
         # because it should not have changed
         self.assertEqual(self.emb.opening_price, Decimal('1200'))
         self.assertEqual(self.emb.opening_value, Decimal('2400000'))
         self.assertEqual(self.emb.opening_holding, Decimal('2000'))
         self.assertEqual(self.emb.gross_income_from_dividends, Decimal('0'))
         self.assertEqual(self.emb.cost_of_trades, Decimal('0'))
-        self.assertIs(self.emb.quick_sale_adjustments, None)
+        self.assertIs(self.emb.quick_sale_adjustment, None)
 
     def test_increase_holding(self):
         self.assertEqual(self.someshare.increase_holding('0'), Decimal('0'))
@@ -457,7 +457,7 @@ class TestProcessTrades(unittest.TestCase):
             result = process_trades(self.shares, self.trades)
         self.assertEqual(result[0], Decimal('211178.13'))
         self.assertEqual(self.shares[-1].cost_of_trades, Decimal('1000'))
-        self.assertIs(self.shares[-1].quick_sale_adjustments, None)
+        self.assertIs(self.shares[-1].quick_sale_adjustment, None)
 
     # need to add a test for creation of new shares as result of trade
     # purchase of a share that was not part of opening position

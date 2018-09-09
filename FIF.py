@@ -85,7 +85,7 @@ class Share:
         NZD.
     cost_of_trades: to be calculated, and remembered, in NZD.
     closing_value: to be calculated, and remembered, in NZD.
-    quick_sale_adjustments: to be calculated,  if needed, and
+    quick_sale_adjustment: to be calculated,  if needed, and
         remembered. If it has a positive value it will be in NZD.
 
     All numerical values are stored as Decimals. It is strongly
@@ -130,7 +130,7 @@ class Share:
         self.gross_income_from_dividends = Decimal('0.00')
         self.cost_of_trades = Decimal('0.00')
         self.closing_value = Decimal('0.00')
-        self.quick_sale_adjustments = None  # most shares won't need it
+        self.quick_sale_adjustment = None  # most shares won't need it
         return
 
     def re_initialise_with_prior_year_closing_values(self):
@@ -155,7 +155,7 @@ class Share:
         self.gross_income_from_dividends = Decimal('0.00')
         self.cost_of_trades = Decimal('0.00')
         self.closing_value = Decimal('0.00')
-        self.quick_sale_adjustments = None  # most shares won't need it
+        self.quick_sale_adjustment = None  # most shares won't need it
         return
 
     def increase_holding(self, increase):
@@ -214,6 +214,12 @@ class Trade:
         trade costs exceed the gross share disposal proceeds). It is
         in the same currency as the share price (for now). It is not
         rounded and may have more than 2 decimals.
+    quick_sale_portion: to be calculated,  if needed. For a share
+        disposal it will represent the number of shares (which may be
+        all of the trade) that are a Quick Sale. For an acquisition
+        it will represent the number of shares that will later be
+        part of one or more quick sales. The value will be positive in
+        both cases.
 
     All numerical values are stored as Decimals. It is strongly
     recommended to pass numerical values for them as strings (or
@@ -236,6 +242,7 @@ class Trade:
         self.share_price = Decimal(share_price)
         self.trade_costs = Decimal(trade_costs)
         self.charge = self.number_of_shares * self.share_price + self.trade_costs
+        self.quick_sale_portion = None
         return
 
     def __repr__(self):
@@ -822,10 +829,10 @@ def process_trades(shares, trades):
             if trade.number_of_shares > Decimal('0'):
                 shares_acquired = True
             elif shares_acquired and trade.number_of_shares < Decimal('0'):
-                share.quick_sale_adjustments = True
+                share.quick_sale_adjustment = True
             # Here we are enjoying Python's duck typing, changing
             # value from None to True, in preparation for later
-            # assigning a Decimal value to quick_sale_adjustments.
+            # assigning a Decimal value to quick_sale_adjustment.
             # The test for number_of_shares < 0 may be overkill,
             # but is there just in case we encounter a bizarre
             # situation where a trade record would be for 0 shares.
@@ -854,7 +861,7 @@ def process_trades(shares, trades):
         # update the quick sale adjustment to something else than None
         # E.g. use -1 as value to indicate it needs to be calculated
         total_cost_of_trades += share_cost_of_trades
-        if share.quick_sale_adjustments:
+        if share.quick_sale_adjustment:
             any_quick_sale_adjustment = True
 
     print('{:>{w}}'.format(outfmt['value'].width * '-', w=outfmt['total width']))
@@ -1251,6 +1258,10 @@ def calc_QSA(share, trades, dividends):
             quick_sale_portion = min(shares_sold, acquired_shares - quick_sale_shares)
             # At this point, quick_sale_shares has the previous balance
             # of (the portions of) shares sold as a quick sale.
+            trade.quick_sale_portion = quick_sale_portion
+            # After this, trade.quick_sale_portion for each share
+            # disposal has a Decimal value (which could be zero). It
+            # will no longer be None.
             quick_sale_shares += quick_sale_portion
             quick_sale_proceeds += ((quick_sale_portion / shares_sold) *
                     -trade.charge / fx_rate).quantize(Decimal('0.01'), ROUND_HALF_UP)
@@ -1267,6 +1278,24 @@ def calc_QSA(share, trades, dividends):
         # Exiting early
         # We could also return a very large number to mess up all
         # calculations, but that could be annoying.
+
+    share_trades.sort(reverse=True, key = attrgetter('date_time'))
+    # We are now going to traverse the share trades again, but this
+    # time in reverse order by date so that we can find the portion of
+    # each individual acquisition that contributed to a later quick
+    # sale.
+    quick_sale_balance = Decimal('0')
+    for trade in share_trades:
+        if trade.number_of_shares < Decimal('0'):
+            quick_sale_balance += trade.quick_sale_portion
+        else:
+            quick_sale_portion = min(trade.number_of_shares, quick_sale_balance)
+            trade.quick_sale_portion = quick_sale_portion
+            # After this, trade.quick_sale_portion for each share
+            # acquisition also has a Decimal value (which could be
+            # zero). It will no longer be None.
+            quick_sale_balance -= quick_sale_portion
+        print(trade.date_time, trade.number_of_shares, trade.quick_sale_portion, quick_sale_balance)
 
     peak_differential = min(peak_holding - share.opening_holding, peak_holding - closing_holding)
     average_cost_of_acquisition = acquisition_costs / acquired_shares
@@ -1332,8 +1361,9 @@ def calc_QSA(share, trades, dividends):
     #     share_dividends.append(dividend)
     # share_dividends.sort(reverse=False, key = attrgetter('date_paid'))
 
-
-    return min(peak_holding_adjustment, quick_sale_gain)
+    quick_sale_adjustment = min(peak_holding_adjustment, quick_sale_gain)
+    share.quick_sale_adjustment = quick_sale_adjustment
+    return quick_sale_adjustment
 
 
 def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, trades, dividends):
@@ -1346,7 +1376,7 @@ def determine_FDR_income(FDR_basic_income, any_quick_sale_adjustment, shares, tr
     if any_quick_sale_adjustment:
         quick_sale_adjustments = Decimal('0.00')
         for share in shares:
-            if share.quick_sale_adjustments:
+            if share.quick_sale_adjustment:
                 print('\nQuick Sale Adjustment for ' + share.code)
                 share_adjustment = calc_QSA(share, trades, dividends)
                 print('{v1:{w1}}{v2:>{w2}}'.format(
