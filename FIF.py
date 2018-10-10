@@ -36,10 +36,10 @@ import dateutil.parser
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
 testing = True
 tax_year = 2018  # hard coded for testing
-opening_test_file = '/home/jelle/Documents/2017 Mar/Jelle/2017_closing_share_info.csv'
-trades_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_trades.csv'
-dividends_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_dividends.csv'
-closing_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_closing_prices.csv'
+opening_test_file = 'opening_test_file.csv'
+trades_test_file = 'trades_test_file.csv'
+dividends_test_file = 'dividends_test_file.csv'
+closing_test_file = 'closing_test_file.csv'
 item_format = namedtuple('item_output_format', 'header, width, precision')
 outfmt = {'code': item_format('share code', 16, 16),
                  'full_name': item_format('name / description', 28, 28),
