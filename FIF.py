@@ -25,6 +25,7 @@ from datetime import date, datetime
 from decimal import Decimal, ROUND_HALF_UP, ROUND_DOWN, getcontext
 # import json
 from operator import attrgetter
+import os.path
 import pickle
 import sys
 from tkinter import Tk
@@ -33,7 +34,12 @@ import dateutil.parser
 
 
 FAIR_DIVIDEND_RATE = '0.05'   # statutory Fair Dividend Rate of 5%
+testing = True
 tax_year = 2018  # hard coded for testing
+opening_test_file = '/home/jelle/Documents/2017 Mar/Jelle/2017_closing_share_info.csv'
+trades_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_trades.csv'
+dividends_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_dividends.csv'
+closing_test_file = '/home/jelle/Documents/2018 Mar/Jelle/2018_closing_prices.csv'
 item_format = namedtuple('item_output_format', 'header, width, precision')
 outfmt = {'code': item_format('share code', 16, 16),
                  'full_name': item_format('name / description', 28, 28),
@@ -601,12 +607,15 @@ def get_opening_positions():
     csv file. It may be extended with additional input methods.
     """
     opening_positions = []
-    filename = '/home/jelle/Documents/2017 Mar/Jelle/2017_closing_share_info.csv'
-    # print('Select file with opening positions, i.e. closing share info from the previous year')
-    # filename = askopenfilename()
-    Tk().withdraw
-    # This is to remove the GUI window that was opened.
-    if filename is None:
+    if testing:
+        filename = opening_test_file
+    else:
+        print('Select file with opening positions, i.e. closing share info from the previous year')
+        filename = askopenfilename()
+        Tk().withdraw
+        # This is to remove the GUI window that was opened.
+
+    if not os.path.isfile(filename):
         print('The program does not have an input file to work with. It is now exiting!')
         sys.exit()
         # This is a hard exit. No need to do anything more.
@@ -727,11 +736,17 @@ def get_trades():
     csv file. It may be extended with additional input methods.
     """
     trades = []
-    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_trades.csv'
+    if testing:
+        filename = trades_test_file
+    else:
+        print('Select csv file with information on trades')
+        filename = askopenfilename()
+        Tk().withdraw
 
-    # print('Select csv file with information on trades')
-    # filename = askopenfilename()
-    # Tk().withdraw
+    if not os.path.isfile(filename):
+        return []
+        # Early return with empty list
+
     with open(filename, newline='') as trades_file:
         reader = csv.DictReader(trades_file)
         for row in reader:
@@ -884,9 +899,16 @@ def get_dividends():
         dividend received during the tax period. The list may be empty.
     """
     dividends = []
-    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_dividends.csv'
-    # filename = askopenfilename()
-    # Tk().withdraw
+    if testing:
+        filename = dividends_test_file
+    else:
+        filename = askopenfilename()
+        Tk().withdraw
+
+    if not os.path.isfile(filename):
+        return []
+        # Early return with empty list
+
     with open(filename, newline='') as dividends_file:
         reader = csv.DictReader(dividends_file)
         for row in reader:
@@ -1021,10 +1043,16 @@ def get_closing_prices(shares):
     """
     closing_prices = []
     closing_price_info = namedtuple('closing_price_info', 'code, price')
-    filename = '/home/jelle/Documents/2018 Mar/Jelle/2018_closing_prices.csv'
+    if testing:
+        filename = closing_test_file
+    else:
+        filename = askopenfilename()
+        Tk().withdraw
 
-    # filename = askopenfilename()
-    # Tk().withdraw
+    if not os.path.isfile(filename):
+        pass
+        # Still need to figure out what to do in this case.
+
     with open(filename, newline='') as closing_prices_file:
         reader = csv.DictReader(closing_prices_file)
         for row in reader:
@@ -1146,8 +1174,16 @@ def save_closing_positions(shares):
         print('nothing to save')
         return  # early exit
 
-    filename = asksaveasfilename()
-    Tk().withdraw
+    if testing:
+        filename = None
+    else:
+        filename = asksaveasfilename()
+        Tk().withdraw
+
+    if not os.path.isfile(filename):
+        return
+        # Do nothing
+
     share_fields = shares[0].__dict__.keys()
     with open(filename, 'w', newline='') as shares_save_file:
         writer = csv.DictWriter(shares_save_file, fieldnames=share_fields)
@@ -1488,7 +1524,10 @@ def print_FIF_income(CV_income, FDR_income):
 def main():
     global fx_rates
     global tax_year
-    # tax_year = get_tax_year()
+
+    if not testing:
+        tax_year = get_tax_year()
+
     fx_rates = get_fx_rates(fx_rates)
 
     shares = get_opening_positions()
